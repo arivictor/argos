@@ -57,9 +57,14 @@ class SQLiteWorkflowEngine(WorkflowEngine):
         :type workflow_id: str | None
         :returns: The result of executing the workflow
         :rtype: WorkflowResult
+        :raises ValueError: If workflow_id already exists
         """
         if workflow_id is None:
             workflow_id = UUIDGenerator().generate()
+        else:
+            # Check if workflow_id already exists
+            if self.result_store.workflow_exists(workflow_id):
+                raise ValueError(f"Workflow ID '{workflow_id}' already exists")
 
         results = []
         error_msg = None

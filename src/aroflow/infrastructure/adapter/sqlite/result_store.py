@@ -160,6 +160,19 @@ class SQLiteResultStore(ResultStore):
         rows = cursor.fetchall()
         return [row[0] for row in rows]
 
+    def workflow_exists(self, workflow_id: str) -> bool:
+        """
+        Check if a workflow ID already exists in the store.
+
+        :param workflow_id: The workflow identifier to check
+        :type workflow_id: str
+        :returns: True if the workflow exists, False otherwise
+        :rtype: bool
+        """
+        conn = self._get_connection()
+        cursor = conn.execute("SELECT 1 FROM workflow_results WHERE workflow_id = ? LIMIT 1", (workflow_id,))
+        return cursor.fetchone() is not None
+
     def __del__(self):
         """Close the database connection on cleanup."""
         if self._conn:

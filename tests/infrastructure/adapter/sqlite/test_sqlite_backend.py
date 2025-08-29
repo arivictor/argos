@@ -145,6 +145,29 @@ class TestSQLiteResultStore:
         workflow_ids = store.list_workflow_ids()
         assert workflow_ids == ["workflow_a", "workflow_b", "workflow_c"]
 
+    def test_workflow_exists(self):
+        """Test checking if a workflow exists."""
+        store = SQLiteResultStore()
+
+        # Initially no workflows exist
+        assert store.workflow_exists("nonexistent") is False
+
+        # Add a workflow
+        store.set("test_workflow.step1", {"result": "data"})
+
+        # Now it should exist
+        assert store.workflow_exists("test_workflow") is True
+
+        # Other workflows should still not exist
+        assert store.workflow_exists("other_workflow") is False
+
+        # Add another workflow
+        store.set("another_workflow.step1", {"result": "more_data"})
+
+        # Both should exist now
+        assert store.workflow_exists("test_workflow") is True
+        assert store.workflow_exists("another_workflow") is True
+
 
 class TestSQLiteBackend:
     """Test cases for SQLite backend integration."""
@@ -380,3 +403,119 @@ class TestSQLiteBackend:
         # Should return sorted workflow IDs
         workflow_ids = client.list_workflows()
         assert workflow_ids == ["workflow_a", "workflow_b", "workflow_c"]
+
+    def test_duplicate_workflow_id_error(self):
+        """Test that using an existing workflow ID raises ValueError."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        workflow = {
+            "steps": [
+                {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "Hello"},
+                }
+            ]
+        }
+
+        # First execution should succeed
+        workflow_id = "duplicate_test"
+        result = client.run(workflow, workflow_id=workflow_id)
+        assert result.status.value == "success"
+
+        # Second execution with same ID should raise ValueError
+        with pytest.raises(ValueError, match="Workflow ID 'duplicate_test' already exists"):
+            client.run(workflow, workflow_id=workflow_id)
+
+    def test_duplicate_workflow_id_different_workflows(self):
+        """Test that the same workflow ID cannot be used for different workflows."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        workflow1 = {
+            "steps": [
+                {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "First workflow"},
+                }
+            ]
+        }
+
+        workflow2 = {
+            "steps": [
+                {
+                    "id": "step2",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "Second workflow"},
+                }
+            ]
+        }
+
+        # Execute first workflow
+        workflow_id = "shared_id"
+        result1 = client.run(workflow1, workflow_id=workflow_id)
+        assert result1.status.value == "success"
+
+        # Attempting to execute different workflow with same ID should fail
+        with pytest.raises(ValueError, match="Workflow ID 'shared_id' already exists"):
+            client.run(workflow2, workflow_id=workflow_id)
+
+    def test_auto_generated_workflow_id_no_conflict(self):
+        """Test that auto-generated workflow IDs don't conflict."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        workflow = {
+            "steps": [
+                {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "Hello"},
+                }
+            ]
+        }
+
+        # Execute multiple workflows without specifying IDs - should not conflict
+        result1 = client.run(workflow)
+        result2 = client.run(workflow)
+        result3 = client.run(workflow)
+
+        assert result1.status.value == "success"
+        assert result2.status.value == "success"
+        assert result3.status.value == "success"
+
+        # All should have different IDs
+        assert result1.id != result2.id
+        assert result1.id != result3.id
+        assert result2.id != result3.id
+
+        # All workflows should be listed
+        workflow_ids = client.list_workflows()
+        assert len(workflow_ids) == 3
+        assert result1.id in workflow_ids
+        assert result2.id in workflow_ids
+        assert result3.id in workflow_ids
