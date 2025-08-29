@@ -41,7 +41,7 @@ class ResultRegistrar:
             self.result_store.set(step_result.id, step_result)
 
 
-def load_workflow(data: dict) -> WorkflowDSL:
+def load_workflow(data: dict | WorkflowDSL) -> WorkflowDSL:
     """Decodes and validates a workflow from a Python dictionary.
 
     Args:
@@ -50,6 +50,10 @@ def load_workflow(data: dict) -> WorkflowDSL:
     Returns:
         A WorkflowDSL instance representing the validated workflow.
     """
+    if isinstance(data, WorkflowDSL):
+        validate_workflow(data)
+        return data
+
     workflow = msgspec.convert(data, type=WorkflowDSL)
     validate_workflow(workflow)
     return workflow
@@ -92,11 +96,11 @@ class WorkflowClient:
         self.registrar = ResultRegistrar(self.result_store)
         self.engine = workflow_engine
 
-    def run(self, workflow_dict: dict, workflow_id: str | None = None) -> WorkflowResult:
+    def run(self, workflow: dict | WorkflowDSL, workflow_id: str | None = None) -> WorkflowResult:
         """
         Loads and executes a workflow from a dictionary.
         Returns a WorkflowResult.
         """
-        workflow = load_workflow(workflow_dict)
+        workflow = load_workflow(workflow)
         result = self.engine.run(workflow)
         return result
