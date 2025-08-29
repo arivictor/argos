@@ -50,21 +50,6 @@ Operation steps execute a single plugin with specified parameters.
 }
 ```
 
-### With Optional Parameters
-
-```python
-{
-    "id": "process_data",
-    "kind": "operation", 
-    "operation": "data_processor",
-    "parameters": {
-        "data": "Hello World",
-        "transform": "upper",
-        "debug": True
-    }
-}
-```
-
 ### Error Handling Options
 
 ```python
@@ -707,6 +692,7 @@ etl_pipeline = {
 ## Best Practices
 
 ### 1. **Step Naming**
+
 Use descriptive step IDs that explain what the step does:
 
 ```python
@@ -722,6 +708,7 @@ Use descriptive step IDs that explain what the step does:
 ```
 
 ### 2. **Error Handling Strategy**
+
 Plan for failures with appropriate retry and timeout settings:
 
 ```python
@@ -745,6 +732,7 @@ Plan for failures with appropriate retry and timeout settings:
 ```
 
 ### 3. **Efficient Parallelization**
+
 Use parallel processing where operations are independent:
 
 ```python
@@ -771,6 +759,7 @@ Use parallel processing where operations are independent:
 ```
 
 ### 4. **Clear Data Flow**
+
 Make data dependencies explicit with meaningful variable names:
 
 ```python
@@ -803,6 +792,7 @@ Make data dependencies explicit with meaningful variable names:
 ```
 
 ### 5. **Workflow Documentation**
+
 Document complex workflows with comments:
 
 ```python

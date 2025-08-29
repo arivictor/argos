@@ -1,12 +1,12 @@
 # Writing Plugins
 
-Plugins are the heart of AroFlow. They encapsulate your business logic and make it available to workflows. This guide will teach you everything you need to know about creating powerful, reusable plugins.
+Plugins are the heart of AroFlow. They encapsulate your business logic and make it available to workflows. Plugins are Python classes or instances that extend `aroflow.PluginMixin`. You can register either plugin classes or plugin instances with the client, depending on whether your plugin requires configuration or state.
 
 ## Plugin Basics
 
 ### What is a Plugin?
 
-A plugin is a Python class that extends `aroflow.PluginMixin` and implements an `execute` method. Each plugin declares a unique `plugin_name` that workflows use to reference it.
+A plugin is a Python class or instance that extends `aroflow.PluginMixin` and implements an `execute` method. Each plugin declares a unique `plugin_name` that workflows use to reference it within a client.
 
 ```python
 import aroflow
@@ -23,10 +23,12 @@ class MyPlugin(aroflow.PluginMixin):
 Every plugin must:
 
 1. **Inherit from `aroflow.PluginMixin`**
-2. **Define a unique `plugin_name`** (string)
+2. **Define a unique `plugin_name`** (string) within the client registry
 3. **Implement an `execute` method**
 
-The `execute` method can have any signature you need - AroFlow will automatically handle parameter binding from workflow definitions.
+The `plugin_name` must be unique among all plugins registered with the same client, but does not need to be globally unique across different clients.
+
+The `execute` method can have any signature you need. AroFlow maps workflow parameters to the `execute` method arguments by name and performs type coercion for primitive types (e.g., `str`, `int`, `float`, `bool`). It does not automatically handle arbitrary signatures or complex conversions.
 
 ## Plugin Examples
 
@@ -51,6 +53,7 @@ class DataProcessorPlugin(aroflow.PluginMixin):
 ```
 
 **Usage in workflow:**
+
 ```python
 {
     "id": "step1",
@@ -127,11 +130,18 @@ class HttpRequestPlugin(aroflow.PluginMixin):
             timeout=timeout
         )
         
+        # Explicitly parse JSON only if content-type header indicates JSON
+        content_type = response.headers.get("content-type", "")
+        try:
+            json_body = response.json() if "application/json" in content_type else None
+        except ValueError:
+            json_body = None
+        
         return {
             "status_code": response.status_code,
             "headers": dict(response.headers),
             "body": response.text,
-            "json": response.json() if response.headers.get("content-type", "").startswith("application/json") else None
+            "json": json_body
         }
 ```
 
@@ -139,7 +149,7 @@ class HttpRequestPlugin(aroflow.PluginMixin):
 
 ### Type Annotations
 
-AroFlow uses type annotations to automatically convert parameters from workflow definitions:
+AroFlow uses type annotations to convert parameters from workflow definitions where possible:
 
 ```python
 class TypedPlugin(aroflow.PluginMixin):
@@ -258,81 +268,9 @@ class DataProcessorPlugin(aroflow.PluginMixin):
 
 ### Stateful Plugins
 
-Plugins can maintain state between calls:
+> **Note:**  
+> Stateful plugins are *not* officially supported in AroFlow. Plugins should generally be stateless, unless they explicitly manage configuration or interact with external state (such as databases or files). If you need to maintain state, consider handling it through external resources or configuration passed to the plugin at initialization.
 
-```python
-class CounterPlugin(aroflow.PluginMixin):
-    plugin_name = "counter"
-    
-    def __init__(self):
-        super().__init__()
-        self.count = 0
-    
-    def execute(self, increment: int = 1) -> dict:
-        self.count += increment
-        return {"count": self.count, "increment": increment}
-```
-
-### Plugin with Dependencies
-
-Plugins can use external dependencies:
-
-```python
-import aroflow
-import pandas as pd
-from datetime import datetime
-
-class DataAnalysisPlugin(aroflow.PluginMixin):
-    plugin_name = "data_analysis"
-    
-    def execute(self, csv_data: str, analysis_type: str = "summary") -> dict:
-        # Convert CSV string to DataFrame
-        from io import StringIO
-        df = pd.read_csv(StringIO(csv_data))
-        
-        if analysis_type == "summary":
-            return {
-                "rows": len(df),
-                "columns": len(df.columns),
-                "column_names": df.columns.tolist(),
-                "summary": df.describe().to_dict()
-            }
-        elif analysis_type == "head":
-            return {
-                "sample": df.head().to_dict(),
-                "shape": df.shape
-            }
-        else:
-            raise ValueError(f"Unknown analysis type: {analysis_type}")
-```
-
-### Plugin with Configuration
-
-Plugins can be configured at initialization:
-
-```python
-class DatabasePlugin(aroflow.PluginMixin):
-    plugin_name = "database"
-    
-    def __init__(self, connection_string: str):
-        super().__init__()
-        self.connection_string = connection_string
-        # In a real implementation, you'd establish the connection here
-    
-    def execute(self, query: str, parameters: dict = None) -> dict:
-        # Simulate database operation
-        return {
-            "query": query,
-            "parameters": parameters or {},
-            "connection": self.connection_string,
-            "executed_at": datetime.now().isoformat()
-        }
-
-# Register with configuration
-client = aroflow.create(aroflow.BackendType.IN_MEMORY)
-db_plugin = DatabasePlugin("postgresql://localhost:5432/mydb")
-client.plugin(db_plugin)
-```
 
 ## Plugin Registration
 
@@ -346,23 +284,24 @@ import aroflow
 # Create client
 client = aroflow.create(aroflow.BackendType.IN_MEMORY)
 
-# Register multiple plugins
+# Register multiple plugin classes
 client.plugin(DataProcessorPlugin)
 client.plugin(FileOperationPlugin)
 client.plugin(HttpRequestPlugin)
 
-# Or register plugin instances
+# Register plugin instances if they require configuration or state
 db_plugin = DatabasePlugin("connection_string")
 client.plugin(db_plugin)
 ```
 
 ### Plugin Discovery
 
-Plugins are automatically discovered when registered. The `plugin_name` must be unique across all registered plugins.
+Plugins are automatically discovered when registered. The `plugin_name` must be unique across all plugins registered with the same client.
 
 ## Best Practices
 
 ### 1. **Clear Naming**
+
 Use descriptive plugin names that reflect their purpose:
 
 ```python
@@ -378,6 +317,7 @@ plugin_name = "util"
 ```
 
 ### 2. **Type Annotations**
+
 Always use type annotations for better parameter binding:
 
 ```python
@@ -387,6 +327,7 @@ def execute(self, data: str, count: int, active: bool = True) -> dict:
 ```
 
 ### 3. **Meaningful Return Values**
+
 Return structured data that other steps can use:
 
 ```python
@@ -402,6 +343,7 @@ def execute(self, input_data: str) -> dict:
 ```
 
 ### 4. **Error Messages**
+
 Provide clear, actionable error messages:
 
 ```python
@@ -414,6 +356,7 @@ def execute(self, file_path: str) -> dict:
 ```
 
 ### 5. **Documentation**
+
 Document your plugins with docstrings:
 
 ```python
