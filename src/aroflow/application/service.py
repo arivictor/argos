@@ -122,5 +122,46 @@ class WorkflowClient:
         :rtype: WorkflowResult
         """
         workflow = load_workflow(workflow)
-        result = self.engine.run(workflow)
+        result = self.engine.run(workflow, workflow_id)
         return result
+
+    def get_workflow(self, workflow_id: str) -> dict[str, Any]:
+        """
+        Retrieve all results for a specific workflow by ID.
+
+        :param workflow_id: The workflow identifier
+        :type workflow_id: str
+        :returns: Dictionary mapping step_id to result values
+        :rtype: dict[str, Any]
+        :raises KeyError: If no results are found for the workflow
+        """
+        if hasattr(self.result_store, 'get_workflow_results'):
+            return self.result_store.get_workflow_results(workflow_id)
+        else:
+            raise NotImplementedError("Backend does not support workflow querying")
+
+    def delete_workflow(self, workflow_id: str) -> bool:
+        """
+        Delete all results for a specific workflow by ID.
+
+        :param workflow_id: The workflow identifier
+        :type workflow_id: str
+        :returns: True if any results were deleted, False otherwise
+        :rtype: bool
+        """
+        if hasattr(self.result_store, 'delete_workflow_results'):
+            return self.result_store.delete_workflow_results(workflow_id)
+        else:
+            raise NotImplementedError("Backend does not support workflow deletion")
+
+    def list_workflows(self) -> list[str]:
+        """
+        Get a list of all workflow IDs that have stored results.
+
+        :returns: List of workflow identifiers
+        :rtype: list[str]
+        """
+        if hasattr(self.result_store, 'list_workflow_ids'):
+            return self.result_store.list_workflow_ids()
+        else:
+            raise NotImplementedError("Backend does not support workflow listing")

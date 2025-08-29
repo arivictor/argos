@@ -2,6 +2,8 @@ import json
 import sqlite3
 from typing import Any
 
+import msgspec
+
 from aroflow.application.port import ResultStore
 
 
@@ -55,8 +57,12 @@ class SQLiteResultStore(ResultStore):
             workflow_id = "default"
             step_id = key
 
-        # Serialize the value to JSON
-        result_json = json.dumps(value, default=str)
+        # Serialize the value using msgspec for better object handling
+        try:
+            result_json = msgspec.json.encode(value).decode('utf-8')
+        except Exception:
+            # Fallback to regular JSON if msgspec fails
+            result_json = json.dumps(value, default=str)
 
         conn = self._get_connection()
         conn.execute(
@@ -92,8 +98,69 @@ class SQLiteResultStore(ResultStore):
         if row is None:
             raise KeyError(f"Key '{key}' not found")
 
-        # Deserialize from JSON
-        return json.loads(row[0])
+        # Deserialize using msgspec for better object handling
+        try:
+            return msgspec.json.decode(row[0].encode('utf-8'))
+        except Exception:
+            # Fallback to regular JSON if msgspec fails
+            return json.loads(row[0])
+
+    def get_workflow_results(self, workflow_id: str) -> dict[str, Any]:
+        """
+        Retrieve all results for a specific workflow.
+
+        :param workflow_id: The workflow identifier
+        :type workflow_id: str
+        :returns: Dictionary mapping step_id to result values
+        :rtype: dict[str, Any]
+        :raises KeyError: If no results are found for the workflow
+        """
+        conn = self._get_connection()
+        cursor = conn.execute(
+            "SELECT step_id, result FROM workflow_results WHERE workflow_id = ?", (workflow_id,)
+        )
+        rows = cursor.fetchall()
+
+        if not rows:
+            raise KeyError(f"No results found for workflow '{workflow_id}'")
+
+        # Convert to dictionary mapping step_id to deserialized result
+        workflow_results = {}
+        for row in rows:
+            step_id, result_json = row
+            try:
+                workflow_results[step_id] = msgspec.json.decode(result_json.encode('utf-8'))
+            except Exception:
+                # Fallback to regular JSON if msgspec fails
+                workflow_results[step_id] = json.loads(result_json)
+
+        return workflow_results
+
+    def delete_workflow_results(self, workflow_id: str) -> bool:
+        """
+        Delete all results for a specific workflow.
+
+        :param workflow_id: The workflow identifier
+        :type workflow_id: str
+        :returns: True if any results were deleted, False otherwise
+        :rtype: bool
+        """
+        conn = self._get_connection()
+        cursor = conn.execute("DELETE FROM workflow_results WHERE workflow_id = ?", (workflow_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+    def list_workflow_ids(self) -> list[str]:
+        """
+        Get a list of all workflow IDs that have stored results.
+
+        :returns: List of workflow identifiers
+        :rtype: list[str]
+        """
+        conn = self._get_connection()
+        cursor = conn.execute("SELECT DISTINCT workflow_id FROM workflow_results ORDER BY workflow_id")
+        rows = cursor.fetchall()
+        return [row[0] for row in rows]
 
     def __del__(self):
         """Close the database connection on cleanup."""

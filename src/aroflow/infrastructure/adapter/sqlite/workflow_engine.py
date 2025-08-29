@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from aroflow.application.adapter import ExecutionContext, VariableResolver
 from aroflow.application.port import ExecutorFactory, ResultStore, WorkflowEngine
@@ -73,8 +74,8 @@ class SQLiteWorkflowEngine(WorkflowEngine):
                 # Execute the step
                 step_result = executor.execute(step)
 
-                # Register the result
-                self.registrar.register(step_result)
+                # Register the result with workflow_id
+                self._register_workflow_result(workflow_id, step_result)
 
                 # Check for failures
                 failed = False
@@ -125,3 +126,37 @@ class SQLiteWorkflowEngine(WorkflowEngine):
             results=results,
             error=error_msg,
         )
+
+    def _register_workflow_result(self, workflow_id: str, step_result: Any):
+        """
+        Register a step result with the workflow ID context.
+
+        :param workflow_id: The workflow identifier
+        :type workflow_id: str
+        :param step_result: The result from executing a step
+        :type step_result: Any
+        """
+        from aroflow.domain.entity import MapResult, OperationResult, ParallelResult
+
+        # Store the main result under workflow_id.step_id
+        if hasattr(step_result, "id"):
+            key = f"{workflow_id}.{step_result.id}"
+            self.result_store.set(key, step_result)
+        
+        # Register nested operation results
+        if isinstance(step_result, MapResult):
+            nested_id = step_result.id
+            # Store the entire list of results under the nested operation id
+            key = f"{workflow_id}.{nested_id}"
+            self.result_store.set(key, step_result.results)
+            # Additionally, register each MapItemResult by its own id
+            for item_result in step_result.results:
+                key = f"{workflow_id}.{item_result.id}"
+                self.result_store.set(key, item_result)
+        elif isinstance(step_result, ParallelResult):
+            for opres in step_result.results:
+                key = f"{workflow_id}.{opres.id}"
+                self.result_store.set(key, opres)
+        elif isinstance(step_result, OperationResult):
+            key = f"{workflow_id}.{step_result.id}"
+            self.result_store.set(key, step_result)

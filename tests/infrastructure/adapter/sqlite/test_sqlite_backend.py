@@ -73,6 +73,78 @@ class TestSQLiteResultStore:
         store.set("workflow123.step456", "complex_value")
         assert store.get("workflow123.step456") == "complex_value"
 
+    def test_get_workflow_results(self):
+        """Test retrieving all results for a workflow."""
+        store = SQLiteResultStore()
+
+        # Store multiple results for a workflow
+        store.set("workflow1.step1", {"result": "data1"})
+        store.set("workflow1.step2", {"result": "data2"})
+        store.set("workflow1.step3", {"result": "data3"})
+        # Store results for different workflow
+        store.set("workflow2.step1", {"result": "other_data"})
+
+        # Get results for workflow1
+        results = store.get_workflow_results("workflow1")
+
+        assert len(results) == 3
+        assert results["step1"] == {"result": "data1"}
+        assert results["step2"] == {"result": "data2"}
+        assert results["step3"] == {"result": "data3"}
+
+    def test_get_workflow_results_not_found(self):
+        """Test that KeyError is raised for non-existent workflow."""
+        store = SQLiteResultStore()
+
+        with pytest.raises(KeyError, match="No results found for workflow 'nonexistent'"):
+            store.get_workflow_results("nonexistent")
+
+    def test_delete_workflow_results(self):
+        """Test deleting all results for a workflow."""
+        store = SQLiteResultStore()
+
+        # Store multiple results for multiple workflows
+        store.set("workflow1.step1", {"result": "data1"})
+        store.set("workflow1.step2", {"result": "data2"})
+        store.set("workflow2.step1", {"result": "other_data"})
+
+        # Delete workflow1 results
+        deleted = store.delete_workflow_results("workflow1")
+        assert deleted is True
+
+        # Verify workflow1 results are gone
+        with pytest.raises(KeyError):
+            store.get_workflow_results("workflow1")
+
+        # Verify workflow2 results still exist
+        results = store.get_workflow_results("workflow2")
+        assert results["step1"] == {"result": "other_data"}
+
+    def test_delete_workflow_results_not_found(self):
+        """Test deleting non-existent workflow returns False."""
+        store = SQLiteResultStore()
+
+        deleted = store.delete_workflow_results("nonexistent")
+        assert deleted is False
+
+    def test_list_workflow_ids(self):
+        """Test listing all workflow IDs."""
+        store = SQLiteResultStore()
+
+        # Initially empty
+        workflow_ids = store.list_workflow_ids()
+        assert workflow_ids == []
+
+        # Add some workflows
+        store.set("workflow_c.step1", {"result": "data"})
+        store.set("workflow_a.step1", {"result": "data"})
+        store.set("workflow_b.step1", {"result": "data"})
+        store.set("workflow_a.step2", {"result": "data"})  # Same workflow, different step
+
+        # Should return sorted unique workflow IDs
+        workflow_ids = store.list_workflow_ids()
+        assert workflow_ids == ["workflow_a", "workflow_b", "workflow_c"]
+
 
 class TestSQLiteBackend:
     """Test cases for SQLite backend integration."""
@@ -157,3 +229,154 @@ class TestSQLiteBackend:
         finally:
             if os.path.exists(db_path):
                 os.unlink(db_path)
+
+    def test_workflow_querying(self):
+        """Test querying workflow results by ID."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        workflow = {
+            "steps": [
+                {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "Hello"},
+                },
+                {
+                    "id": "step2",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "World"},
+                }
+            ]
+        }
+
+        # Execute workflow with specific ID
+        workflow_id = "test_workflow_123"
+        result = client.run(workflow, workflow_id=workflow_id)
+
+        # Query the workflow results
+        workflow_results = client.get_workflow(workflow_id)
+
+        assert len(workflow_results) == 2
+        assert "step1" in workflow_results
+        assert "step2" in workflow_results
+        assert workflow_results["step1"]["result"] == "Processed: Hello"
+        assert workflow_results["step2"]["result"] == "Processed: World"
+        assert workflow_results["step1"]["id"] == "step1"
+        assert workflow_results["step2"]["id"] == "step2"
+        assert workflow_results["step1"]["kind"] == "operation"
+        assert workflow_results["step2"]["kind"] == "operation"
+
+    def test_workflow_querying_not_found(self):
+        """Test querying non-existent workflow raises KeyError."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        with pytest.raises(KeyError, match="No results found for workflow 'nonexistent'"):
+            client.get_workflow("nonexistent")
+
+    def test_workflow_deletion(self):
+        """Test deleting workflow results by ID."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        workflow = {
+            "steps": [
+                {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "Hello"},
+                }
+            ]
+        }
+
+        # Execute two workflows
+        workflow_id1 = "workflow_to_delete"
+        workflow_id2 = "workflow_to_keep"
+        
+        client.run(workflow, workflow_id=workflow_id1)
+        client.run(workflow, workflow_id=workflow_id2)
+
+        # Verify both workflows exist
+        assert len(client.get_workflow(workflow_id1)) == 1
+        assert len(client.get_workflow(workflow_id2)) == 1
+
+        # Delete first workflow
+        deleted = client.delete_workflow(workflow_id1)
+        assert deleted is True
+
+        # Verify first workflow is gone, second still exists
+        with pytest.raises(KeyError):
+            client.get_workflow(workflow_id1)
+        
+        assert len(client.get_workflow(workflow_id2)) == 1
+
+    def test_workflow_deletion_not_found(self):
+        """Test deleting non-existent workflow returns False."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        deleted = client.delete_workflow("nonexistent")
+        assert deleted is False
+
+    def test_list_workflows(self):
+        """Test listing all workflow IDs."""
+
+        class TestPlugin(PluginBase):
+            plugin_name = "test_plugin"
+
+            def execute(self, value: str) -> str:
+                return f"Processed: {value}"
+
+        client = aroflow.create(BackendType.SQLITE, plugins=[TestPlugin])
+
+        workflow = {
+            "steps": [
+                {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "test_plugin",
+                    "parameters": {"value": "Hello"},
+                }
+            ]
+        }
+
+        # Initially no workflows
+        workflow_ids = client.list_workflows()
+        assert workflow_ids == []
+
+        # Execute some workflows
+        client.run(workflow, workflow_id="workflow_c")
+        client.run(workflow, workflow_id="workflow_a")
+        client.run(workflow, workflow_id="workflow_b")
+
+        # Should return sorted workflow IDs
+        workflow_ids = client.list_workflows()
+        assert workflow_ids == ["workflow_a", "workflow_b", "workflow_c"]

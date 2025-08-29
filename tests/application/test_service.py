@@ -362,7 +362,7 @@ class TestWorkflowClient:
 
         result = self.client.run(workflow)
 
-        self.workflow_engine.run.assert_called_once_with(workflow)
+        self.workflow_engine.run.assert_called_once_with(workflow, None)
         assert result == expected_result
 
     def test_run_workflow_with_id(self):
