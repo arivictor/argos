@@ -1,7 +1,13 @@
-
 import argos
-from argos.domain.entity import WorkflowResult
-from plugins import SayHelloPlugin
+from argos import WorkflowResult
+
+
+class SayHelloPlugin(argos.PluginMixin):
+    plugin_name = "say_hello"
+
+    def execute(self, name: str) -> str:
+        return f"Hello, {name}!"
+
 
 if __name__ == "__main__":
     # Create client for in-memory execution
@@ -21,7 +27,9 @@ if __name__ == "__main__":
         ]
     }
 
-    result: WorkflowResult = client.run(workflow)
+    workflow_id = "example_workflow_001"
+    result: WorkflowResult = client.run(workflow, workflow_id)
+
     print(result.to_dict())
     print(result.to_json())
     print(result.to_yaml())

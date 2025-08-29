@@ -1,9 +1,15 @@
+import uuid
+
 from argos.application.adapter import ExecutionContext, VariableResolver
 from argos.application.port import ExecutorFactory, ResultStore, WorkflowEngine
 from argos.application.service import ResultRegistrar
 from argos.domain.entity import WorkflowDSL, WorkflowResult
+from argos.domain.value_object import ResultStatus, WorkflowResultStatus
 from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
 
+class UUIDGenerator:
+    def generate(self) -> str:
+        return uuid.uuid4().hex
 
 class InMemoryWorkflowEngine(WorkflowEngine):
     """Workflow engine that executes steps in memory using executors."""
@@ -32,22 +38,24 @@ class InMemoryWorkflowEngine(WorkflowEngine):
             try:
                 step_result = executor.execute(step)
                 self.registrar.register(step_result)
+
                 # Determine if this step failed
                 # OperationResult, MapResult, ParallelResult
                 failed = False
                 nonfatal_failed = False
-                if hasattr(step_result, "status") and getattr(step_result, "status", None) == "failed":
+                if hasattr(step_result, "status") and getattr(step_result, "status", None) == ResultStatus.FAILED:
                     # Try to check fail_workflow
                     fail_workflow = getattr(step, "fail_workflow", True)
                     if fail_workflow:
                         failed = True
                     else:
                         nonfatal_failed = True
+
                 # For MapResult or ParallelResult, check contained item results
                 if hasattr(step_result, "results"):
                     contained = getattr(step_result, "results", [])
                     for item in contained:
-                        if hasattr(item, "status") and getattr(item, "status", None) == "failed":
+                        if hasattr(item, "status") and getattr(item, "status", None) == ResultStatus.FAILED:
                             fail_workflow = getattr(step, "fail_workflow", True)
                             if fail_workflow:
                                 failed = True
@@ -65,13 +73,13 @@ class InMemoryWorkflowEngine(WorkflowEngine):
                 break
         # Determine workflow status
         if any_failed:
-            status = "failed"
+            status = WorkflowResultStatus.FAILED
         elif any_nonfatal_failed:
-            status = "partial"
+            status = WorkflowResultStatus.PARTIAL_FAILURE
         else:
-            status = "success"
+            status = WorkflowResultStatus.SUCCESS
         if workflow_id is None:
-            workflow_id = "workflow"
+            workflow_id = UUIDGenerator().generate()
         return WorkflowResult(
             id=workflow_id,
             status=status,
