@@ -22,7 +22,8 @@ Argos abstracts the complexities of different execution backends, allowing you t
 
 ## Quick Start
 
-See [example.py](example.py) for a complete example.
+> [!NOTE]
+> See [example.py](example.py) for a working example.
 
 1. Define a Plugin
 
