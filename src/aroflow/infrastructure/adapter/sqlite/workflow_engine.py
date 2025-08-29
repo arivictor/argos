@@ -142,7 +142,7 @@ class SQLiteWorkflowEngine(WorkflowEngine):
         if hasattr(step_result, "id"):
             key = f"{workflow_id}.{step_result.id}"
             self.result_store.set(key, step_result)
-        
+
         # Register nested operation results
         if isinstance(step_result, MapResult):
             nested_id = step_result.id

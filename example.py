@@ -20,5 +20,11 @@ if __name__ == "__main__":
         "steps": [{"id": "process_data", "kind": "operation", "operation": "say_hello", "parameters": {"name": "ari"}}]
     }
 
-    result = client.run(workflow)
+    my_id = "workflow_1"
+    result = client.run(workflow, my_id)
     print(result.to_dict())
+
+    workflows = client.list_workflows()
+    print(f"Stored workflows: {workflows}")
+
+    my_workflow = client.get_workflow(my_id)

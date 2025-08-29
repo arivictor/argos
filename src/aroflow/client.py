@@ -69,7 +69,7 @@ class Client:
         :rtype: dict[str, Any]
         :raises KeyError: If no results are found for the workflow
         """
-        if hasattr(self._engine, 'result_store') and hasattr(self._engine.result_store, 'get_workflow_results'):
+        if hasattr(self._engine, "result_store") and hasattr(self._engine.result_store, "get_workflow_results"):
             return self._engine.result_store.get_workflow_results(workflow_id)
         else:
             raise NotImplementedError("Backend does not support workflow querying")
@@ -83,7 +83,7 @@ class Client:
         :returns: True if any results were deleted, False otherwise
         :rtype: bool
         """
-        if hasattr(self._engine, 'result_store') and hasattr(self._engine.result_store, 'delete_workflow_results'):
+        if hasattr(self._engine, "result_store") and hasattr(self._engine.result_store, "delete_workflow_results"):
             return self._engine.result_store.delete_workflow_results(workflow_id)
         else:
             raise NotImplementedError("Backend does not support workflow deletion")
@@ -95,7 +95,7 @@ class Client:
         :returns: List of workflow identifiers
         :rtype: list[str]
         """
-        if hasattr(self._engine, 'result_store') and hasattr(self._engine.result_store, 'list_workflow_ids'):
+        if hasattr(self._engine, "result_store") and hasattr(self._engine.result_store, "list_workflow_ids"):
             return self._engine.result_store.list_workflow_ids()
         else:
             raise NotImplementedError("Backend does not support workflow listing")

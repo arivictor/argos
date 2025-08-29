@@ -59,7 +59,7 @@ class SQLiteResultStore(ResultStore):
 
         # Serialize the value using msgspec for better object handling
         try:
-            result_json = msgspec.json.encode(value).decode('utf-8')
+            result_json = msgspec.json.encode(value).decode("utf-8")
         except Exception:
             # Fallback to regular JSON if msgspec fails
             result_json = json.dumps(value, default=str)
@@ -100,7 +100,7 @@ class SQLiteResultStore(ResultStore):
 
         # Deserialize using msgspec for better object handling
         try:
-            return msgspec.json.decode(row[0].encode('utf-8'))
+            return msgspec.json.decode(row[0].encode("utf-8"))
         except Exception:
             # Fallback to regular JSON if msgspec fails
             return json.loads(row[0])
@@ -116,9 +116,7 @@ class SQLiteResultStore(ResultStore):
         :raises KeyError: If no results are found for the workflow
         """
         conn = self._get_connection()
-        cursor = conn.execute(
-            "SELECT step_id, result FROM workflow_results WHERE workflow_id = ?", (workflow_id,)
-        )
+        cursor = conn.execute("SELECT step_id, result FROM workflow_results WHERE workflow_id = ?", (workflow_id,))
         rows = cursor.fetchall()
 
         if not rows:
@@ -129,7 +127,7 @@ class SQLiteResultStore(ResultStore):
         for row in rows:
             step_id, result_json = row
             try:
-                workflow_results[step_id] = msgspec.json.decode(result_json.encode('utf-8'))
+                workflow_results[step_id] = msgspec.json.decode(result_json.encode("utf-8"))
             except Exception:
                 # Fallback to regular JSON if msgspec fails
                 workflow_results[step_id] = json.loads(result_json)

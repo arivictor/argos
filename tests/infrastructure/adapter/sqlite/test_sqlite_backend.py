@@ -254,13 +254,13 @@ class TestSQLiteBackend:
                     "kind": "operation",
                     "operation": "test_plugin",
                     "parameters": {"value": "World"},
-                }
+                },
             ]
         }
 
         # Execute workflow with specific ID
         workflow_id = "test_workflow_123"
-        result = client.run(workflow, workflow_id=workflow_id)
+        _ = client.run(workflow, workflow_id=workflow_id)
 
         # Query the workflow results
         workflow_results = client.get_workflow(workflow_id)
@@ -314,7 +314,7 @@ class TestSQLiteBackend:
         # Execute two workflows
         workflow_id1 = "workflow_to_delete"
         workflow_id2 = "workflow_to_keep"
-        
+
         client.run(workflow, workflow_id=workflow_id1)
         client.run(workflow, workflow_id=workflow_id2)
 
@@ -329,7 +329,7 @@ class TestSQLiteBackend:
         # Verify first workflow is gone, second still exists
         with pytest.raises(KeyError):
             client.get_workflow(workflow_id1)
-        
+
         assert len(client.get_workflow(workflow_id2)) == 1
 
     def test_workflow_deletion_not_found(self):
