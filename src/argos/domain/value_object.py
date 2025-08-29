@@ -10,10 +10,12 @@ class ExecutionOptions:
     retries: int = 0
     timeout: float | None = None
 
+
 class WorkflowResultStatus(str, Enum):
     SUCCESS = "success"
     FAILED = "failed"
     PARTIAL_FAILURE = "partial_failure"
+
 
 class ResultStatus(str, Enum):
     SUCCESS = "success"

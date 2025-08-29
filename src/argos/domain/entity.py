@@ -1,10 +1,9 @@
 from abc import abstractmethod
-from enum import Enum
 from typing import Any, Literal
 
 import msgspec
 
-from argos.domain.value_object import MapItemResult, ParallelOpResult, ResultStatus, WorkflowResultStatus
+from argos.domain.value_object import MapItemResult, ParallelOpResult, WorkflowResultStatus
 
 
 class Step(msgspec.Struct, tag_field="kind", forbid_unknown_fields=True):
@@ -120,6 +119,7 @@ class ParallelResult(msgspec.Struct, forbid_unknown_fields=True):
     id: str
     kind: Literal["parallel"]
     results: list[ParallelOpResult]
+
 
 class WorkflowResult(msgspec.Struct, forbid_unknown_fields=True):
     """Result of running a workflow, including status and all step results."""

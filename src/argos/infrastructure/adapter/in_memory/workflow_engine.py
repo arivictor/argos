@@ -7,9 +7,11 @@ from argos.domain.entity import WorkflowDSL, WorkflowResult
 from argos.domain.value_object import ResultStatus, WorkflowResultStatus
 from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
 
+
 class UUIDGenerator:
     def generate(self) -> str:
         return uuid.uuid4().hex
+
 
 class InMemoryWorkflowEngine(WorkflowEngine):
     """Workflow engine that executes steps in memory using executors."""
