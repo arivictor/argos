@@ -56,7 +56,7 @@ class Client:
             self._resolver._registry[plugin_name] = plugin
         return self
 
-    def run(self, workflow_dict: dict, workflow_id: str | None = None) -> WorkflowResult:
+    def run(self, workflow_dict: dict) -> WorkflowResult:
         """
         Execute a workflow.
 
@@ -68,7 +68,7 @@ class Client:
             The workflow execution result
         """
         workflow = load_workflow(workflow_dict)
-        return self._engine.run(workflow, workflow_id)
+        return self._engine.run(workflow)
 
     def load_plugins(self) -> list[type[PluginBase]]:
         """
