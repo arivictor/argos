@@ -14,6 +14,14 @@ class InMemoryClient(WorkflowClient):
 
 
 def create(plugins: list[type[PluginBase]]) -> InMemoryClient:
+    """
+    Creates an InMemoryClient with the specified plugins.
+
+    :param plugins: List of plugin classes to register
+    :type plugins: list[type[PluginBase]]
+    :returns: Configured InMemoryClient instance
+    :rtype: InMemoryClient
+    """
     result_store = InMemoryResultStore()
     context = ExecutionContext(result_store)
     executor_factory = InMemoryExecutorFactory(

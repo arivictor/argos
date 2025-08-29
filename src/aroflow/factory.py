@@ -8,15 +8,13 @@ def create(backend: BackendType, plugins: list[type[PluginBase]] | None = None) 
     """
     Factory function to create a Client with the specified backend.
 
-    Args:
-        backend: The backend type to use for workflow execution
-        plugins: Optional list of plugin classes to pre-register
-
-    Returns:
-        A configured Client instance
-
-    Raises:
-        ValueError: If the backend type is unsupported
+    :param backend: The backend type to use for workflow execution
+    :type backend: BackendType
+    :param plugins: Optional list of plugin classes to pre-register
+    :type plugins: list[type[PluginBase]] | None
+    :returns: A configured Client instance
+    :rtype: Client
+    :raises ValueError: If the backend type is unsupported
     """
     plugins = plugins or []
 

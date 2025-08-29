@@ -153,7 +153,9 @@ class ParameterBinder(Binder):
 
 
 class VariableResolver(PlaceholderResolver):
-    """Resolves ${stepId[.field][[index]].field} placeholders in arbitrarily nested data structures.
+    """
+    Resolves ${stepId[.field][[index]].field} placeholders in arbitrarily nested data structures.
+
     Rules:
     - If a string is exactly a single placeholder like "${step1}", return the referenced value as-is (preserve type).
     - Otherwise, perform string interpolation by converting referenced values to str.
@@ -228,7 +230,20 @@ class OperationExecutor(StepExecutor):
         task_runner: TaskRunner,
         execution_options: ExecutionOptions,
     ):
-        """Initializes with a plugin resolver, parameter binder, and placeholder resolver."""
+        """
+        Initializes with a plugin resolver, parameter binder, and placeholder resolver.
+
+        :param resolver: Plugin resolver for finding plugins by operation name
+        :type resolver: PluginResolver
+        :param binder: Parameter binder for binding parameters to plugin methods
+        :type binder: ParameterBinder
+        :param values: Placeholder resolver for resolving variable references
+        :type values: PlaceholderResolver
+        :param task_runner: Task runner for executing plugin operations
+        :type task_runner: TaskRunner
+        :param execution_options: Global execution options for retries and timeout
+        :type execution_options: ExecutionOptions
+        """
         self.resolver = resolver
         self.binder = binder
         self.values = values
@@ -236,7 +251,14 @@ class OperationExecutor(StepExecutor):
         self.execution_options = execution_options
 
     def execute(self, step: OperationStep):
-        """Executes the operation step and returns a structured result."""
+        """
+        Executes the operation step and returns a structured result.
+
+        :param step: The operation step to execute
+        :type step: OperationStep
+        :returns: The result of executing the operation step
+        :rtype: OperationResult
+        """
         # Resolve placeholders in parameters
         resolved_params = self.values.resolve_any(step.parameters)
         step = structs.replace(step, parameters=resolved_params)
