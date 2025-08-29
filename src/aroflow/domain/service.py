@@ -2,13 +2,14 @@ from aroflow.domain.entity import WorkflowDSL
 
 
 def validate_workflow(data: WorkflowDSL) -> bool:
-    """Validates the workflow structure and contents.
+    """
+    Validates the workflow structure and contents.
 
-    Args:
-        data: The WorkflowDSL instance to validate.
-
-    Returns:
-        True if the workflow is valid, raises ValueError otherwise.
+    :param data: The WorkflowDSL instance to validate
+    :type data: WorkflowDSL
+    :returns: True if the workflow is valid, raises ValueError otherwise
+    :rtype: bool
+    :raises ValueError: If the workflow structure or contents are invalid
     """
     if not data.steps:
         raise ValueError("Workflow has no steps")

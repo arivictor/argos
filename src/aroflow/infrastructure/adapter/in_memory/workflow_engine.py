@@ -9,7 +9,15 @@ from aroflow.infrastructure.adapter.in_memory.result_store import InMemoryResult
 
 
 class UUIDGenerator:
+    """Generates unique identifiers using UUID."""
+
     def generate(self) -> str:
+        """
+        Generate a unique identifier.
+
+        :returns: A unique identifier string
+        :rtype: str
+        """
         return uuid.uuid4().hex
 
 
@@ -22,7 +30,16 @@ class InMemoryWorkflowEngine(WorkflowEngine):
         result_store: ResultStore,
         registrar: ResultRegistrar,
     ):
-        """Initializes with an executor factory and optional result store and registrar."""
+        """
+        Initializes with an executor factory and optional result store and registrar.
+
+        :param executor_factory: Factory for creating step executors
+        :type executor_factory: ExecutorFactory
+        :param result_store: Store for workflow results
+        :type result_store: ResultStore
+        :param registrar: Registrar for storing step results
+        :type registrar: ResultRegistrar
+        """
         self.result_store = result_store if result_store is not None else InMemoryResultStore()
         self.registrar = registrar if registrar is not None else ResultRegistrar(self.result_store)
         self.ctx = ExecutionContext(self.result_store)
@@ -30,7 +47,16 @@ class InMemoryWorkflowEngine(WorkflowEngine):
         self.executor_factory = executor_factory
 
     def run(self, workflow: WorkflowDSL, workflow_id: str | None = None) -> WorkflowResult:
-        """Executes each step of the workflow in order and returns a WorkflowResult."""
+        """
+        Executes each step of the workflow in order and returns a WorkflowResult.
+
+        :param workflow: The workflow to execute
+        :type workflow: WorkflowDSL
+        :param workflow_id: Optional workflow identifier
+        :type workflow_id: str | None
+        :returns: The result of executing the workflow
+        :rtype: WorkflowResult
+        """
         results = []
         any_failed = False
         any_nonfatal_failed = False

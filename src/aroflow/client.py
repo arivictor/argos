@@ -22,10 +22,11 @@ class Client:
         """
         Initialize the client with a backend engine and plugin resolver.
 
-        Args:
-            backend: The workflow engine implementation (e.g., InMemoryWorkflowEngine)
-            plugin_resolver: The plugin resolver for registering and resolving plugins
-            executor_factory: The executor factory that actually uses the plugin resolver
+        :param backend: The workflow engine implementation (e.g., InMemoryWorkflowEngine)
+        :type backend: WorkflowEngine
+        :param plugin_resolver: The plugin resolver for registering and resolving plugins
+        :type plugin_resolver: PluginResolver
+        :param executor_factory: The executor factory that actually uses the plugin resolver
         """
         self._engine = backend
         self._resolver = plugin_resolver
@@ -48,12 +49,12 @@ class Client:
         """
         Execute a workflow.
 
-        Args:
-            workflow_dict: The workflow definition as a dictionary
-            workflow_id: Optional workflow identifier
-
-        Returns:
-            The workflow execution result
+        :param workflow_dict: The workflow definition as a dictionary
+        :type workflow_dict: dict
+        :param workflow_id: Optional workflow identifier
+        :type workflow_id: str | None
+        :returns: The workflow execution result
+        :rtype: WorkflowResult
         """
         workflow = load_workflow(workflow_dict)
         return self._engine.run(workflow, workflow_id)
@@ -62,8 +63,8 @@ class Client:
         """
         Get all registered plugins.
 
-        Returns:
-            List of registered plugin classes
+        :returns: List of registered plugin classes
+        :rtype: list[type[PluginBase]]
         """
         return PluginBase._plugins
 
@@ -72,7 +73,7 @@ class Client:
         """
         Get all available plugin classes (static method).
 
-        Returns:
-            List of available plugin classes
+        :returns: List of available plugin classes
+        :rtype: list[type[PluginBase]]
         """
         return PluginBase._plugins
