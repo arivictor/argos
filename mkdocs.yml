@@ -9,19 +9,21 @@ nav:
   - Writing Plugins: plugins.md
   - Creating Workflows: workflows.md
   - Examples: examples.md
+  - Blog:
+    - blog/index.md
 
 theme:
   name: material
   palette:
     - scheme: default
-      primary: pink
-      accent: pink
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: pink
-      accent: pink
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -49,6 +51,8 @@ markdown_extensions:
 
 plugins:
   - search
+  - meta
+  - blog
 
 extra:
   social:
