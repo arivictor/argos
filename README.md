@@ -112,7 +112,7 @@ Argos can do more than just basic workflows.
                 "id": "step1_op",
                 "kind": "operation",
                 "operation": "say_hello",
-                "parameters": {"name": "{{item}}"},
+                "parameters": {"name": "${item}"},
             },
         },
     ]

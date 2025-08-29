@@ -23,7 +23,7 @@ if __name__ == "__main__":
                 "kind": "map",
                 "mode": "sequential",
                 "iterator": "name",
-                "inputs": ["Ari", "Budi", "Cici"],
+                "inputs": ["A", "R", "G", "O", "S"],
                 "operation": {
                     "id": "step1",
                     "kind": "operation",
