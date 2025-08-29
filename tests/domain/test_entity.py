@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from argos.domain.entity import (
+from aroflow.domain.entity import (
     MapResult,
     MapStep,
     OperationResult,
@@ -22,7 +22,7 @@ from argos.domain.entity import (
     WorkflowDSL,
     WorkflowResult,
 )
-from argos.domain.value_object import (
+from aroflow.domain.value_object import (
     MapItemResult,
     ParallelOpResult,
     WorkflowResultStatus,

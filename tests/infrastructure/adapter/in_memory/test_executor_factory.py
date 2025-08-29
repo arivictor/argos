@@ -8,17 +8,17 @@ from unittest.mock import Mock
 
 import pytest
 
-from argos.application.adapter import (
+from aroflow.application.adapter import (
     MapExecutor,
     OperationExecutor,
     ParallelOperationExecutor,
     ParameterBinder,
     PlaceholderResolver,
 )
-from argos.application.port import PluginResolver, TaskRunner
-from argos.domain.entity import MapStep, OperationStep, ParallelStep
-from argos.domain.value_object import ExecutionOptions
-from argos.infrastructure.adapter.in_memory.executor_factory import InMemoryExecutorFactory
+from aroflow.application.port import PluginResolver, TaskRunner
+from aroflow.domain.entity import MapStep, OperationStep, ParallelStep
+from aroflow.domain.value_object import ExecutionOptions
+from aroflow.infrastructure.adapter.in_memory.executor_factory import InMemoryExecutorFactory
 
 
 class TestInMemoryExecutorFactory:
@@ -185,7 +185,7 @@ class TestInMemoryExecutorFactory:
 
     def test_executor_inheritance_from_step_executor(self):
         """Test that returned executors inherit from StepExecutor."""
-        from argos.application.port import StepExecutor
+        from aroflow.application.port import StepExecutor
 
         operation_step = OperationStep(id="op", operation="test", parameters={})
         map_step = MapStep(

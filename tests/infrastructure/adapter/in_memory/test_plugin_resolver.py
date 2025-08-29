@@ -6,8 +6,8 @@ This module tests the InMemoryPluginResolver implementation.
 
 import pytest
 
-from argos.domain.port import PluginBase
-from argos.infrastructure.adapter.in_memory.plugin_resolver import InMemoryPluginResolver
+from aroflow.domain.port import PluginBase
+from aroflow.infrastructure.adapter.in_memory.plugin_resolver import InMemoryPluginResolver
 
 
 class TestPlugin1(PluginBase):

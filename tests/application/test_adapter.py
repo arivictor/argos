@@ -13,7 +13,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from argos.application.adapter import (
+from aroflow.application.adapter import (
     ExecutionContext,
     MapStrategyFactory,
     OperationExecutor,
@@ -22,10 +22,10 @@ from argos.application.adapter import (
     SequentialMapStrategy,
     VariableResolver,
 )
-from argos.application.port import ResultStore
-from argos.domain.entity import MapStep, OperationStep
-from argos.domain.port import PluginBase
-from argos.domain.value_object import ExecutionOptions
+from aroflow.application.port import ResultStore
+from aroflow.domain.entity import MapStep, OperationStep
+from aroflow.domain.port import PluginBase
+from aroflow.domain.value_object import ExecutionOptions
 
 
 class TestExecutionContext:

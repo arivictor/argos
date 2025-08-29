@@ -1,8 +1,8 @@
-import argos
-from argos import WorkflowResult
+import aroflow
+from aroflow import WorkflowResult
 
 
-class SayHelloPlugin(argos.PluginMixin):
+class SayHelloPlugin(aroflow.PluginMixin):
     plugin_name = "say_hello"
 
     def execute(self, name: str) -> str:
@@ -11,7 +11,7 @@ class SayHelloPlugin(argos.PluginMixin):
 
 if __name__ == "__main__":
     # Create client for in-memory execution
-    client = argos.create(argos.BackendType.IN_MEMORY)
+    client = aroflow.create(aroflow.BackendType.IN_MEMORY)
 
     # Register plugins
     client.plugin(SayHelloPlugin)

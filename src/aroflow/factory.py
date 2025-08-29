@@ -1,7 +1,7 @@
-from argos.backend import BackendType
-from argos.client import Client
-from argos.domain.port import PluginBase
-from argos.infrastructure.adapter.in_memory.client import create as create_in_memory_client
+from aroflow.backend import BackendType
+from aroflow.client import Client
+from aroflow.domain.port import PluginBase
+from aroflow.infrastructure.adapter.in_memory.client import create as create_in_memory_client
 
 
 def create(backend: BackendType, plugins: list[type[PluginBase]] | None = None) -> Client:

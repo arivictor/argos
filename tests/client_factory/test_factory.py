@@ -8,10 +8,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from argos.backend import BackendType
-from argos.client import Client
-from argos.domain.port import PluginBase
-from argos.factory import create
+from aroflow.backend import BackendType
+from aroflow.client import Client
+from aroflow.domain.port import PluginBase
+from aroflow.factory import create
 
 
 class TestPlugin(PluginBase):
@@ -208,7 +208,7 @@ class TestCreate:
         available = client.get_available_plugins()
         assert len(available) >= 2  # At least our plugins
 
-    @patch("argos.factory.create_in_memory_client")
+    @patch("aroflow.factory.create_in_memory_client")
     def test_create_calls_in_memory_factory(self, mock_create_in_memory):
         """Test that create function calls the in-memory factory."""
         # Setup mock

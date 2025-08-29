@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 import msgspec
 
-from argos.domain.value_object import MapItemResult, ParallelOpResult, WorkflowResultStatus
+from aroflow.domain.value_object import MapItemResult, ParallelOpResult, WorkflowResultStatus
 
 
 class Step(msgspec.Struct, tag_field="kind", forbid_unknown_fields=True):

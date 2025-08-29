@@ -1,6 +1,6 @@
 from typing import Any
 
-from argos.application.adapter import ResultStore
+from aroflow.application.adapter import ResultStore
 
 
 class InMemoryResultStore(ResultStore):

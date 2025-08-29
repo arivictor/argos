@@ -1,13 +1,13 @@
-from argos.application.adapter import (
+from aroflow.application.adapter import (
     MapExecutor,
     OperationExecutor,
     ParallelOperationExecutor,
     ParameterBinder,
     PlaceholderResolver,
 )
-from argos.application.port import ExecutorFactory, PluginResolver, StepExecutor, TaskRunner
-from argos.domain.entity import MapStep, OperationStep, ParallelStep, Step
-from argos.domain.value_object import ExecutionOptions
+from aroflow.application.port import ExecutorFactory, PluginResolver, StepExecutor, TaskRunner
+from aroflow.domain.entity import MapStep, OperationStep, ParallelStep, Step
+from aroflow.domain.value_object import ExecutionOptions
 
 
 class InMemoryExecutorFactory(ExecutorFactory):

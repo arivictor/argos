@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from argos.domain.entity import Step, WorkflowDSL
-from argos.domain.port import PluginBase
+from aroflow.domain.entity import Step, WorkflowDSL
+from aroflow.domain.port import PluginBase
 
 
 class WorkflowEngine(ABC):

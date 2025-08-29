@@ -12,14 +12,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from argos.application.port import ResultStore, WorkflowEngine
-from argos.application.service import (
+from aroflow.application.port import ResultStore, WorkflowEngine
+from aroflow.application.service import (
     ResultRegistrar,
     WorkflowClient,
     execute_workflow,
     load_workflow,
 )
-from argos.domain.entity import (
+from aroflow.domain.entity import (
     MapResult,
     OperationResult,
     OperationStep,
@@ -27,7 +27,7 @@ from argos.domain.entity import (
     WorkflowDSL,
     WorkflowResult,
 )
-from argos.domain.value_object import (
+from aroflow.domain.value_object import (
     ExecutionOptions,
     MapItemResult,
     ParallelOpResult,

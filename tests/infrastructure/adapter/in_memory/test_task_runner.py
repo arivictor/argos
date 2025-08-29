@@ -6,8 +6,8 @@ This module tests the InMemoryTaskRunner implementation.
 
 import pytest
 
-from argos.domain.port import PluginBase
-from argos.infrastructure.adapter.in_memory.task_runner import InMemoryTaskRunner
+from aroflow.domain.port import PluginBase
+from aroflow.infrastructure.adapter.in_memory.task_runner import InMemoryTaskRunner
 
 
 class SimplePlugin(PluginBase):

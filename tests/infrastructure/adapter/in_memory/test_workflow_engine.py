@@ -6,16 +6,16 @@ This module tests the InMemoryWorkflowEngine implementation.
 
 from unittest.mock import Mock
 
-from argos.application.port import ExecutorFactory, ResultStore
-from argos.application.service import ResultRegistrar
-from argos.domain.entity import (
+from aroflow.application.port import ExecutorFactory, ResultStore
+from aroflow.application.service import ResultRegistrar
+from aroflow.domain.entity import (
     OperationResult,
     OperationStep,
     WorkflowDSL,
     WorkflowResult,
 )
-from argos.domain.value_object import ResultStatus, WorkflowResultStatus
-from argos.infrastructure.adapter.in_memory.workflow_engine import (
+from aroflow.domain.value_object import ResultStatus, WorkflowResultStatus
+from aroflow.infrastructure.adapter.in_memory.workflow_engine import (
     InMemoryWorkflowEngine,
     UUIDGenerator,
 )
@@ -311,8 +311,8 @@ class TestInMemoryWorkflowEngine:
 
     def test_engine_initialization_with_defaults(self):
         """Test engine initialization with default components."""
-        from argos.application.service import ResultRegistrar
-        from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
+        from aroflow.application.service import ResultRegistrar
+        from aroflow.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
 
         # Create engine with minimal setup
         engine = InMemoryWorkflowEngine(

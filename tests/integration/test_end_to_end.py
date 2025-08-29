@@ -1,11 +1,11 @@
 """
-Integration tests for the entire Argos framework.
+Integration tests for the entire AroFlow framework.
 
 This module tests end-to-end functionality across all layers.
 """
 
-from argos import BackendType, PluginMixin, WorkflowResult, create
-from argos.domain.value_object import WorkflowResultStatus
+from aroflow import BackendType, PluginMixin, WorkflowResult, create
+from aroflow.domain.value_object import WorkflowResultStatus
 
 
 class SimplePlugin(PluginMixin):
@@ -383,7 +383,7 @@ class TestIntegration:
     def test_plugin_registration_and_discovery(self):
         """Test plugin registration and discovery."""
         # Clear existing plugins
-        from argos.domain.port import PluginBase
+        from aroflow.domain.port import PluginBase
 
         original_plugins = PluginBase._plugins.copy()
         PluginBase._plugins.clear()

@@ -9,7 +9,7 @@ This module tests the PluginBase class including:
 
 import pytest
 
-from argos.domain.port import PluginBase
+from aroflow.domain.port import PluginBase
 
 
 class TestPluginBase:

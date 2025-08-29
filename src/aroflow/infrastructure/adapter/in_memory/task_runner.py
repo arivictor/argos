@@ -1,7 +1,7 @@
 from typing import Any
 
-from argos.application.adapter import TaskRunner
-from argos.domain.port import PluginBase
+from aroflow.application.adapter import TaskRunner
+from aroflow.domain.port import PluginBase
 
 
 class InMemoryTaskRunner(TaskRunner):

@@ -1,4 +1,4 @@
-from argos.domain.port import PluginBase
+from aroflow.domain.port import PluginBase
 
 
 def load_plugins() -> list[type[PluginBase]]:

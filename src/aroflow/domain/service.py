@@ -1,4 +1,4 @@
-from argos.domain.entity import WorkflowDSL
+from aroflow.domain.entity import WorkflowDSL
 
 
 def validate_workflow(data: WorkflowDSL) -> bool:

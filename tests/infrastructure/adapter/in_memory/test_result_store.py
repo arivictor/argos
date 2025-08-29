@@ -6,7 +6,7 @@ This module tests the InMemoryResultStore implementation.
 
 import pytest
 
-from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
+from aroflow.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
 
 
 class TestInMemoryResultStore:

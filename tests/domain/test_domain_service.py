@@ -7,13 +7,13 @@ This module tests the domain service functions including:
 
 import pytest
 
-from argos.domain.entity import (
+from aroflow.domain.entity import (
     MapStep,
     OperationStep,
     ParallelStep,
     WorkflowDSL,
 )
-from argos.domain.service import validate_workflow
+from aroflow.domain.service import validate_workflow
 
 
 class TestValidateWorkflow:

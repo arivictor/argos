@@ -1,5 +1,5 @@
-from argos.application.adapter import PluginResolver
-from argos.domain.port import PluginBase
+from aroflow.application.adapter import PluginResolver
+from aroflow.domain.port import PluginBase
 
 
 class InMemoryPluginResolver(PluginResolver):

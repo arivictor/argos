@@ -8,9 +8,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from argos.domain.port import PluginBase
-from argos.domain.value_object import ExecutionOptions
-from argos.infrastructure.adapter.in_memory.client import InMemoryClient, create
+from aroflow.domain.port import PluginBase
+from aroflow.domain.value_object import ExecutionOptions
+from aroflow.infrastructure.adapter.in_memory.client import InMemoryClient, create
 
 
 class TestPlugin(PluginBase):
@@ -34,7 +34,7 @@ class TestInMemoryClient:
 
     def test_inmemory_client_inheritance(self):
         """Test that InMemoryClient inherits from WorkflowClient."""
-        from argos.application.service import WorkflowClient
+        from aroflow.application.service import WorkflowClient
 
         # Create mock dependencies
         plugin_resolver = Mock()
@@ -97,11 +97,11 @@ class TestCreateFunction:
         client = create(plugins)
 
         # Test that components are properly connected
-        from argos.application.adapter import ExecutionContext, ParameterBinder
-        from argos.infrastructure.adapter.in_memory.executor_factory import InMemoryExecutorFactory
-        from argos.infrastructure.adapter.in_memory.plugin_resolver import InMemoryPluginResolver
-        from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
-        from argos.infrastructure.adapter.in_memory.workflow_engine import InMemoryWorkflowEngine
+        from aroflow.application.adapter import ExecutionContext, ParameterBinder
+        from aroflow.infrastructure.adapter.in_memory.executor_factory import InMemoryExecutorFactory
+        from aroflow.infrastructure.adapter.in_memory.plugin_resolver import InMemoryPluginResolver
+        from aroflow.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
+        from aroflow.infrastructure.adapter.in_memory.workflow_engine import InMemoryWorkflowEngine
 
         assert isinstance(client.result_store, InMemoryResultStore)
         assert isinstance(client.resolver, InMemoryPluginResolver)
@@ -275,6 +275,6 @@ class TestCreateFunction:
 
         assert isinstance(client, InMemoryClient)
         # InMemoryClient should also be a WorkflowClient
-        from argos.application.service import WorkflowClient
+        from aroflow.application.service import WorkflowClient
 
         assert isinstance(client, WorkflowClient)

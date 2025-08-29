@@ -1,16 +1,16 @@
-# Argos
+# AroFlow
 
-![Argos](assets/logo.png)
+![AroFlow](assets/logo.png)
 
 Orchestrate your workflows effortlessly. ***Anywhere.***
 
-## What is Argos?
+## What is AroFlow?
 
-Argos is a modern workflow orchestration tool designed to streamline and automate complex processes across various execution environments. Whether you're managing data pipelines, automating deployments, or coordinating tasks across distributed systems, Argos provides a unified platform to define, execute, and monitor your workflows with ease and reliability.
+AroFlow is a modern workflow orchestration tool designed to streamline and automate complex processes across various execution environments. Whether you're managing data pipelines, automating deployments, or coordinating tasks across distributed systems, AroFlow provides a unified platform to define, execute, and monitor your workflows with ease and reliability.
 
-## What does Argos do?
+## What does AroFlow do?
 
-Argos abstracts the complexities of different execution backends, allowing you to *define your workflows once and run them anywhere* without modification. It ensures consistency, scalability, and flexibility, empowering developers and organizations to automate their operations efficiently.
+AroFlow abstracts the complexities of different execution backends, allowing you to *define your workflows once and run them anywhere* without modification. It ensures consistency, scalability, and flexibility, empowering developers and organizations to automate their operations efficiently.
 
 ## Features
 
@@ -27,13 +27,13 @@ Argos abstracts the complexities of different execution backends, allowing you t
 
 1. Define a Plugin
 
-Plugins extend Argos by implementing execute.
+Plugins extend AroFlow by implementing execute.
 Each plugin declares a plugin_name so workflows can reference it.
 
 ```python
-import argos
+import AroFlow
 
-class SayHelloPlugin(argos.PluginMixin):
+class SayHelloPlugin(AroFlow.PluginMixin):
     plugin_name = "say_hello"
 
     def execute(self, name: str) -> str:
@@ -43,7 +43,7 @@ class SayHelloPlugin(argos.PluginMixin):
 2. Create a client and register your plugin(s)
 
 ```python
-client = argos.create(argos.BackendType.IN_MEMORY)
+client = AroFlow.create(AroFlow.BackendType.IN_MEMORY)
 client.plugin(SayHelloPlugin)
 ```
 
@@ -56,7 +56,7 @@ workflow = {
             "id": "step1", # unique step id
             "kind": "operation",
             "operation": "say_hello", # plugin_name
-            "parameters": {"name": "Argos"},
+            "parameters": {"name": "AroFlow"},
         },
     ]
 }
@@ -65,7 +65,7 @@ workflow = {
 4. Execute the workflow
 
 ```python
-from argos import WorkflowResult
+from AroFlow import WorkflowResult
 
 result: WorkflowResult = client.run(workflow)
 
@@ -86,7 +86,7 @@ results:
   operation: say_hello
   parameters:
     name: Ari
-  result: Hello, Argos!
+  result: Hello, AroFlow!
   status: success
   error: null
 error: null
@@ -94,7 +94,7 @@ error: null
 
 ## Further Reading
 
-Argos can do more than just basic workflows.
+AroFlow can do more than just basic workflows.
 
 - Map a plugin over a list of items (in sequence or in parallel)
 
@@ -133,13 +133,13 @@ Argos can do more than just basic workflows.
                     "id": "step1_op1",
                     "kind": "operation",
                     "operation": "say_hello",
-                    "parameters": {"name": "Argos A"}
+                    "parameters": {"name": "AroFlow A"}
                 },
                 {
                     "id": "step1_op2",
                     "kind": "operation",
                     "operation": "say_hello",
-                    "parameters": {"name": "Argos B"}
+                    "parameters": {"name": "AroFlow B"}
                 },
             ],
         },

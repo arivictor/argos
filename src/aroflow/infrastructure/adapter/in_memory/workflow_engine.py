@@ -1,11 +1,11 @@
 import uuid
 
-from argos.application.adapter import ExecutionContext, VariableResolver
-from argos.application.port import ExecutorFactory, ResultStore, WorkflowEngine
-from argos.application.service import ResultRegistrar
-from argos.domain.entity import WorkflowDSL, WorkflowResult
-from argos.domain.value_object import ResultStatus, WorkflowResultStatus
-from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
+from aroflow.application.adapter import ExecutionContext, VariableResolver
+from aroflow.application.port import ExecutorFactory, ResultStore, WorkflowEngine
+from aroflow.application.service import ResultRegistrar
+from aroflow.domain.entity import WorkflowDSL, WorkflowResult
+from aroflow.domain.value_object import ResultStatus, WorkflowResultStatus
+from aroflow.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
 
 
 class UUIDGenerator:

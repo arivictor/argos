@@ -9,7 +9,7 @@ This module tests value objects and enums including:
 - ParallelOpResult
 """
 
-from argos.domain.value_object import (
+from aroflow.domain.value_object import (
     ExecutionOptions,
     MapItemResult,
     ParallelOpResult,

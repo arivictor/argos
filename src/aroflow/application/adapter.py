@@ -9,7 +9,7 @@ from typing import Any, Union, get_args, get_origin
 import msgspec
 from msgspec import structs
 
-from argos.application.port import (
+from aroflow.application.port import (
     Binder,
     Context,
     PlaceholderResolver,
@@ -18,7 +18,7 @@ from argos.application.port import (
     StepExecutor,
     TaskRunner,
 )
-from argos.domain.entity import (
+from aroflow.domain.entity import (
     MapResult,
     MapStep,
     OperationResult,
@@ -26,8 +26,8 @@ from argos.domain.entity import (
     ParallelResult,
     ParallelStep,
 )
-from argos.domain.port import PluginBase
-from argos.domain.value_object import ExecutionOptions, MapItemResult, ParallelOpResult, ResultStatus
+from aroflow.domain.port import PluginBase
+from aroflow.domain.value_object import ExecutionOptions, MapItemResult, ParallelOpResult, ResultStatus
 
 
 class ExecutionContext(Context):

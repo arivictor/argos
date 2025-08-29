@@ -2,17 +2,17 @@ from typing import Any
 
 import msgspec
 
-from argos.application.adapter import VariableResolver
-from argos.application.port import (
+from aroflow.application.adapter import VariableResolver
+from aroflow.application.port import (
     Binder,
     Context,
     PluginResolver,
     ResultStore,
     WorkflowEngine,
 )
-from argos.domain.entity import MapResult, OperationResult, ParallelResult, WorkflowDSL, WorkflowResult
-from argos.domain.service import validate_workflow
-from argos.domain.value_object import ExecutionOptions
+from aroflow.domain.entity import MapResult, OperationResult, ParallelResult, WorkflowDSL, WorkflowResult
+from aroflow.domain.service import validate_workflow
+from aroflow.domain.value_object import ExecutionOptions
 
 
 class ResultRegistrar:

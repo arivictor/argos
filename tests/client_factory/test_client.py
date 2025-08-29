@@ -8,11 +8,11 @@ from unittest.mock import Mock
 
 import pytest
 
-from argos.application.port import PluginResolver, WorkflowEngine
-from argos.client import Client
-from argos.domain.entity import WorkflowResult
-from argos.domain.port import PluginBase
-from argos.domain.value_object import WorkflowResultStatus
+from aroflow.application.port import PluginResolver, WorkflowEngine
+from aroflow.client import Client
+from aroflow.domain.entity import WorkflowResult
+from aroflow.domain.port import PluginBase
+from aroflow.domain.value_object import WorkflowResultStatus
 
 
 class TestPlugin(PluginBase):
@@ -124,7 +124,7 @@ class TestClient:
         workflow_arg = self.backend.run.call_args[0][0]
 
         # Should be WorkflowDSL
-        from argos.domain.entity import WorkflowDSL
+        from aroflow.domain.entity import WorkflowDSL
 
         assert isinstance(workflow_arg, WorkflowDSL)
         assert len(workflow_arg.steps) == 1

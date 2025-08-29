@@ -6,7 +6,7 @@ This module tests the BackendType enum.
 
 import pytest
 
-from argos.backend import BackendType
+from aroflow.backend import BackendType
 
 
 class TestBackendType:

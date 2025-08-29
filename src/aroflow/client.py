@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
-from argos.application.port import PluginResolver, WorkflowEngine
-from argos.application.service import load_workflow
-from argos.domain.entity import WorkflowResult
-from argos.domain.port import PluginBase
+from aroflow.application.port import PluginResolver, WorkflowEngine
+from aroflow.application.service import load_workflow
+from aroflow.domain.entity import WorkflowResult
+from aroflow.domain.port import PluginBase
 
 if TYPE_CHECKING:
     pass

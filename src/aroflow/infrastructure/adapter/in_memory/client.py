@@ -1,12 +1,12 @@
-from argos.application.adapter import ExecutionContext, ParameterBinder, VariableResolver
-from argos.application.service import ResultRegistrar, WorkflowClient
-from argos.domain.port import PluginBase
-from argos.domain.value_object import ExecutionOptions
-from argos.infrastructure.adapter.in_memory.executor_factory import InMemoryExecutorFactory
-from argos.infrastructure.adapter.in_memory.plugin_resolver import InMemoryPluginResolver
-from argos.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
-from argos.infrastructure.adapter.in_memory.task_runner import InMemoryTaskRunner
-from argos.infrastructure.adapter.in_memory.workflow_engine import InMemoryWorkflowEngine
+from aroflow.application.adapter import ExecutionContext, ParameterBinder, VariableResolver
+from aroflow.application.service import ResultRegistrar, WorkflowClient
+from aroflow.domain.port import PluginBase
+from aroflow.domain.value_object import ExecutionOptions
+from aroflow.infrastructure.adapter.in_memory.executor_factory import InMemoryExecutorFactory
+from aroflow.infrastructure.adapter.in_memory.plugin_resolver import InMemoryPluginResolver
+from aroflow.infrastructure.adapter.in_memory.result_store import InMemoryResultStore
+from aroflow.infrastructure.adapter.in_memory.task_runner import InMemoryTaskRunner
+from aroflow.infrastructure.adapter.in_memory.workflow_engine import InMemoryWorkflowEngine
 
 
 class InMemoryClient(WorkflowClient):
