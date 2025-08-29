@@ -12,7 +12,6 @@ from msgspec import structs
 import re
 
 
-# domain/plugins/base.py
 class PluginBase:
     """Base class for all plugins. Enforces 'execute' method and registers subclasses."""
 
@@ -53,14 +52,11 @@ class SayHelloPlugin(PluginBase):
         return f"Hello, {name}!"
 
 
-# domain/plugins/registry.py
 def get_plugins() -> list[type[PluginBase]]:
     """Returns a list of all registered plugin classes."""
     return PluginBase._plugins
 
 
-# domain/plugins/resolver.py
-# Plugin Resolution and DI
 class PluginResolver(ABC):
     """Abstract base class defining plugin resolution interface."""
 
@@ -70,7 +66,6 @@ class PluginResolver(ABC):
         ...
 
 
-# infrastructure/plugins/in_memory.py
 class InMemoryPluginResolver(PluginResolver):
     """Resolves plugins from an in-memory registry."""
 
@@ -92,8 +87,7 @@ class InMemoryPluginResolver(PluginResolver):
         return cls()
 
 
-# infrastructure/binding/parameter_binder.py
-# Parameter binding based on plugin type hints
+
 class ParameterBinder:
     """Binds parameters (accepting mixed types) to plugin execute method arguments with type coercion.
 
@@ -155,7 +149,6 @@ class ParameterBinder:
         return value
 
 
-# infrastructure/binding/placeholder_resolver.py
 class ExecutionContext:
     """Holds results of previously executed steps, addressable by step id."""
 
@@ -220,10 +213,6 @@ class PlaceholderResolver:
         return current
 
 
-# domain/model/steps.py
-# Workflow Engine Domain
-
-
 class Step(msgspec.Struct, tag_field="kind"):
     """Base class for workflow steps with a unique identifier."""
 
@@ -258,7 +247,6 @@ class MapStep(Step, kw_only=True, tag="map"):
 StepTypes = Union[OperationStep, MapStep, ParallelStep]
 
 
-# domain/model/workflow.py
 
 
 class WorkflowDSL(msgspec.Struct):
@@ -267,7 +255,6 @@ class WorkflowDSL(msgspec.Struct):
     steps: list[StepTypes]
 
 
-# domain/model/results.py
 class OperationResult(msgspec.Struct):
     """Result of a single operation execution."""
 
@@ -371,7 +358,6 @@ def validate_workflow(data: WorkflowDSL) -> bool:
     return True
 
 
-# application/services/decoder.py
 def load_workflow(data: dict) -> WorkflowDSL:
     """Decodes and validates a workflow from a Python dictionary.
 
@@ -386,7 +372,6 @@ def load_workflow(data: dict) -> WorkflowDSL:
     return workflow
 
 
-# application/engine.py
 class WorkflowEngine(ABC):
     """Abstract base class defining the workflow engine interface."""
 
@@ -396,7 +381,6 @@ class WorkflowEngine(ABC):
         ...
 
 
-# application/executors/base.py
 class StepExecutor(ABC):
     """Abstract executor interface for executing workflow steps and returning results."""
 
@@ -406,7 +390,6 @@ class StepExecutor(ABC):
         ...
 
 
-# application/executors/operation.py
 class OperationExecutor(StepExecutor):
     """Executes an operation step by resolving and running the corresponding plugin."""
 
@@ -475,28 +458,32 @@ class ParallelOperationExecutor(StepExecutor):
         return ParallelResult(id=step.id, kind="parallel", results=inner)
 
 
-# application/executors/map.py
-class SequentialMapExecutor(StepExecutor):
-    """Executes a map step sequentially over inputs."""
 
+
+
+# --- MapStrategy pattern ---
+class MapStrategy(ABC):
+    @abstractmethod
+    def execute(self, step: MapStep) -> MapResult:
+        ...
+
+
+class SequentialMapStrategy(MapStrategy):
     def __init__(
         self,
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
     ):
-        """Initializes with a plugin resolver, parameter binder, and placeholder resolver."""
         self.resolver = resolver
         self.binder = binder
         self.values = values
 
-    def execute(self, step: MapStep):
-        """Executes the map step sequentially and returns a structured result."""
+    def execute(self, step: MapStep) -> MapResult:
         print(
             f"Executing sequential map over {step.inputs} with iterator {step.iterator}"
         )
         base_op = step.operation
-        # Resolve placeholders in base operation parameters
         base_params = self.values.resolve_any(base_op.parameters)
         results = []
         for item in step.inputs:
@@ -526,28 +513,22 @@ class SequentialMapExecutor(StepExecutor):
         )
 
 
-# application/executors/map.py
-class ParallelMapExecutor(StepExecutor):
-    """Executes a map step in parallel over inputs using threads."""
-
+class ParallelMapStrategy(MapStrategy):
     def __init__(
         self,
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
     ):
-        """Initializes with a plugin resolver, parameter binder, and placeholder resolver."""
         self.resolver = resolver
         self.binder = binder
         self.values = values
 
-    def execute(self, step: MapStep):
-        """Executes the map step in parallel and returns a structured result."""
+    def execute(self, step: MapStep) -> MapResult:
         print(
             f"Executing parallel map over {step.inputs} with iterator {step.iterator}"
         )
         base_op = step.operation
-        # Resolve placeholders in base operation parameters
         base_params = self.values.resolve_any(base_op.parameters)
         from concurrent.futures import ThreadPoolExecutor
 
@@ -579,35 +560,42 @@ class ParallelMapExecutor(StepExecutor):
         )
 
 
-# application/executors/map.py
-class MapExecutor(StepExecutor):
-    """Delegates map step execution to sequential or parallel executors based on mode."""
+class MapStrategyFactory:
+    """Factory to return the correct MapStrategy based on mode."""
+    @staticmethod
+    def get_strategy(
+        mode: str,
+        resolver: PluginResolver,
+        binder: ParameterBinder,
+        values: PlaceholderResolver,
+    ) -> MapStrategy:
+        if mode == "parallel":
+            return ParallelMapStrategy(resolver, binder, values)
+        else:
+            return SequentialMapStrategy(resolver, binder, values)
 
+
+class MapExecutor(StepExecutor):
+    """Executes a map step using a strategy pattern."""
     def __init__(
         self,
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
     ):
-        """Initializes with a plugin resolver, parameter binder, and placeholder resolver."""
         self.resolver = resolver
         self.binder = binder
         self.values = values
+        # strategy is selected per execution
 
     def execute(self, step: MapStep):
-        """Executes the map step in the configured mode and returns aggregated results."""
         print(f"Executing map over {step.inputs} with iterator {step.iterator}")
-        if step.mode == "parallel":
-            return ParallelMapExecutor(self.resolver, self.binder, self.values).execute(
-                step
-            )
-        else:
-            return SequentialMapExecutor(
-                self.resolver, self.binder, self.values
-            ).execute(step)
+        strategy = MapStrategyFactory.get_strategy(
+            step.mode, self.resolver, self.binder, self.values
+        )
+        return strategy.execute(step)
 
 
-# application/engine.py
 class InMemoryWorkflowEngine(WorkflowEngine):
     """Workflow engine that executes steps in memory using executors."""
 
@@ -637,17 +625,25 @@ class InMemoryWorkflowEngine(WorkflowEngine):
             else:
                 raise ValueError(f"Unknown step type: {type(step)}")
             self.ctx.results[step.id] = step_result
+            # Register nested operation results so they are accessible by id
+            if isinstance(step_result, MapResult):
+                nested_id = step.operation.id
+                # Store the entire list of results under the nested operation id
+                self.ctx.results[nested_id] = step_result.results
+            elif isinstance(step_result, ParallelResult):
+                for opres in step_result.results:
+                    self.ctx.results[opres.id] = opres
+            elif isinstance(step_result, OperationResult):
+                self.ctx.results[step_result.id] = step_result
             results.append(step_result)
         return results
 
 
-# interfaces/cli/main.py
 def execute_workflow(workflow: WorkflowDSL, engine: WorkflowEngine):
     """Runs the given workflow using the specified workflow engine and returns results."""
     return engine.run(workflow)
 
 
-# interfaces/cli/main.py
 if __name__ == "__main__":
     my_workflow = {
         "steps": [
@@ -697,7 +693,7 @@ if __name__ == "__main__":
                         "id": "step4_op2",
                         "kind": "operation",
                         "operation": "say_hello",
-                        "parameters": {"name": "Parallel 2"},
+                        "parameters": {"name": "${step3_op[1].result}"},
                     },
                 ],
             },
