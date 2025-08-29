@@ -20,9 +20,16 @@ if __name__ == "__main__":
         "steps": [
             {
                 "id": "step1",
-                "kind": "operation",
-                "operation": "say_hello",
-                "parameters": {"name": "Ari"},
+                "kind": "map",
+                "mode": "sequential",
+                "iterator": "name",
+                "inputs": ["A", "R", "G", "O", "S"],
+                "operation": {
+                    "id": "step1",
+                    "kind": "operation",
+                    "operation": "say_hello",
+                    "parameters": {"name": "${name}"},
+                },
             },
         ]
     }

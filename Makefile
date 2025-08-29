@@ -4,7 +4,17 @@ ruff-format: ## Runs ruff formatter on the codebase
 ruff-lint:  ## Runs ruff linter on the codebase
 	@ruff check --fix  .
 
+ruff-check: ## Runs ruff linter on the codebase without fixing
+	@ruff check .
+	@ruff format --check .
+
 format: ruff-format ruff-lint ## Formatting and linting using Ruff
+
+docs-build:
+	@mkdocs build
+
+docs-serve:
+	@mkdocs serve
 
 .PHONY: help
 .DEFAULT_GOAL := help

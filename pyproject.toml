@@ -8,6 +8,15 @@ dependencies = [
     "msgspec",
     "ruff",
     "pyyaml",
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "mkdocs",
+    "mkdocs-material",
+]
+
+[project.optional-dependencies]
+test = [
+    
 ]
 
 [tool.ruff]
@@ -33,6 +42,18 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=src/argos",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "-v"
+]
 
 [tool.setuptools]
 py-modules = []

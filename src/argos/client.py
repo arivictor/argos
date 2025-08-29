@@ -32,28 +32,16 @@ class Client:
         self._executor_factory = executor_factory
 
     def plugin(self, plugin: type[PluginBase]) -> "Client":
-        """
-        Register a plugin with the client.
-
-        Args:
-            plugin: The plugin class to register
-
-        Returns:
-            The client instance for method chaining
-        """
-        # Register with the executor factory's resolver (the one that actually matters)
-        if (
-            self._executor_factory
-            and hasattr(self._executor_factory, "resolver")
-            and hasattr(self._executor_factory.resolver, "_registry")
-        ):
+        if self._executor_factory and hasattr(self._executor_factory, "resolver"):
+            resolver = self._executor_factory.resolver
             plugin_name = getattr(plugin, "plugin_name", plugin.__name__)
-            self._executor_factory.resolver._registry[plugin_name] = plugin
+            registry = getattr(resolver, "_registry", None)
 
-        # Also register with our own resolver for consistency
-        # if hasattr(self._resolver, "_registry"):
-        #     plugin_name = getattr(plugin, "plugin_name", plugin.__name__)
-        #     self._resolver._registry[plugin_name] = plugin
+            if isinstance(registry, dict):
+                registry[plugin_name] = plugin
+            else:
+                # If no dict registry, just set it up
+                resolver._registry = {plugin_name: plugin}
         return self
 
     def run(self, workflow_dict: dict, workflow_id: str | None = None) -> WorkflowResult:
