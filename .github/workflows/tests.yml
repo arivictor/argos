@@ -28,6 +28,7 @@ jobs:
         env:
           PYTHONPATH: src/
         run: |
+          source .venv/bin/activate
           make ruff-check
 
   tests:
@@ -61,4 +62,5 @@ jobs:
         env:
           PYTHONPATH: src/
         run: |
+          source .venv/bin/activate
           pytest -vvv 
