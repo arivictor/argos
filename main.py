@@ -149,27 +149,43 @@ class ParameterBinder:
         return value
 
 
+
+# --- ResultStore abstraction ---
+from typing import Any
+class ResultStore(ABC):
+    @abstractmethod
+    def set(self, key: str, value: Any):
+        ...
+    @abstractmethod
+    def get(self, key: str) -> Any:
+        ...
+
+class InMemoryResultStore(ResultStore):
+    def __init__(self):
+        self._store: dict[str, Any] = {}
+    def set(self, key: str, value: Any):
+        self._store[key] = value
+    def get(self, key: str) -> Any:
+        return self._store[key]
+
+
 class ExecutionContext:
     """Holds results of previously executed steps, addressable by step id."""
+    def __init__(self, result_store: ResultStore | None = None):
+        self.results = result_store if result_store is not None else InMemoryResultStore()
 
-    def __init__(self):
-        self.results: dict[str, Any] = {}
 
 
 class PlaceholderResolver:
     """Resolves ${stepId[.field][[index]].field} placeholders in arbitrarily nested data structures.
-
     Rules:
     - If a string is exactly a single placeholder like "${step1}", return the referenced value as-is (preserve type).
     - Otherwise, perform string interpolation by converting referenced values to str.
     - Supported paths: `${id}`, `${id.result}`, `${id.results}`, `${id.results[0]}`, `${id.results[0].result}`.
     """
-
     _pattern = re.compile(r"\$\{([^}]+)\}")
-
     def __init__(self, ctx: ExecutionContext):
         self.ctx = ctx
-
     def resolve_any(self, value: Any) -> Any:
         if isinstance(value, dict):
             return {k: self.resolve_any(v) for k, v in value.items()}
@@ -178,29 +194,26 @@ class PlaceholderResolver:
         if isinstance(value, str):
             return self._resolve_string(value)
         return value
-
     def _resolve_string(self, s: str) -> Any:
         # Exact single-token match => return raw value to preserve type
         m = self._pattern.fullmatch(s.strip())
         if m:
             return self._lookup_token(m.group(1))
-
         # Interpolate within string
         def repl(match: re.Match) -> str:
             val = self._lookup_token(match.group(1))
             return str(val)
-
         return self._pattern.sub(repl, s)
-
     def _lookup_token(self, token: str) -> Any:
         # token grammar: id(.field|[index])*
         parts = re.findall(r"[^.\[\]]+|\[\d+\]", token)
         if not parts:
             return token
         step_id = parts[0]
-        if step_id not in self.ctx.results:
+        try:
+            current = self.ctx.results.get(step_id)
+        except KeyError:
             raise KeyError(f"Unknown step id in placeholder: {step_id}")
-        current = self.ctx.results[step_id]
         # Convert msgspec Structs to builtins for traversal
         current = msgspec.to_builtins(current)
         # Walk remaining parts
@@ -268,6 +281,7 @@ class OperationResult(msgspec.Struct):
 class MapItemResult(msgspec.Struct):
     """Result of applying an operation to a single input item in a map step."""
 
+    id: str
     input: Any
     operation: str
     parameters: dict[str, Any]
@@ -312,6 +326,7 @@ class ValidateWorkflowStep:
         Returns:
             True if the step is valid, raises ValueError otherwise.
         """
+        # All top-level steps must have an id
         if not step.id or not isinstance(step.id, str):
             raise ValueError(f"Invalid step id: {step.id}")
 
@@ -322,10 +337,12 @@ class ValidateWorkflowStep:
                 raise ValueError(
                     f"Invalid iterator name in map step {step.id}: {step.iterator}"
                 )
+            # Only check type for nested operation, do not require id
             if not isinstance(step.operation, OperationStep):
                 raise ValueError(
                     f"Map step {step.id} operation must be an OperationStep"
                 )
+            # Do NOT require step.operation.id to be present or string
         if isinstance(step, ParallelStep):
             if not step.operations:
                 raise ValueError(f"Parallel step {step.id} has no operations")
@@ -381,9 +398,20 @@ class WorkflowEngine(ABC):
         ...
 
 
+
+# --- TaskRunner abstraction ---
+class TaskRunner(ABC):
+    @abstractmethod
+    def run(self, plugin: PluginBase, bound: dict[str, Any]) -> Any:
+        ...
+
+class LocalTaskRunner(TaskRunner):
+    def run(self, plugin: PluginBase, bound: dict[str, Any]) -> Any:
+        return plugin.execute(**bound)
+
+
 class StepExecutor(ABC):
     """Abstract executor interface for executing workflow steps and returning results."""
-
     @abstractmethod
     def execute(self, step: Any) -> Any:
         """Execute a workflow step and return its result."""
@@ -392,18 +420,18 @@ class StepExecutor(ABC):
 
 class OperationExecutor(StepExecutor):
     """Executes an operation step by resolving and running the corresponding plugin."""
-
     def __init__(
         self,
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
     ):
         """Initializes with a plugin resolver, parameter binder, and placeholder resolver."""
         self.resolver = resolver
         self.binder = binder
         self.values = values
-
+        self.task_runner = task_runner if task_runner is not None else LocalTaskRunner()
     def execute(self, step: OperationStep):
         """Executes the operation step and returns a structured result."""
         # Resolve placeholders in parameters
@@ -412,7 +440,7 @@ class OperationExecutor(StepExecutor):
         print(f"Executing operation {step.operation} with parameters {step.parameters}")
         plugin = self.resolver.resolve(step.operation)
         bound = self.binder.bind(plugin, step.parameters)
-        result = plugin.execute(**bound)
+        result = self.task_runner.run(plugin, bound)
         print(f"Result: {result}")
         return OperationResult(
             id=step.id,
@@ -423,36 +451,35 @@ class OperationExecutor(StepExecutor):
         )
 
 
+
 class ParallelOperationExecutor(StepExecutor):
     """Executes multiple operation steps in parallel using threads."""
-
     def __init__(
         self,
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
     ):
         """Initializes with a plugin resolver, parameter binder, and placeholder resolver."""
         self.resolver = resolver
         self.binder = binder
         self.values = values
-
+        self.task_runner = task_runner if task_runner is not None else LocalTaskRunner()
     def execute(self, step: ParallelStep):
         """Executes all operation steps in parallel and returns a structured result."""
         print(
             f"Executing parallel operations: {[op.operation for op in step.operations]}"
         )
         from concurrent.futures import ThreadPoolExecutor
-
         def run_op(op: OperationStep):
-            res = OperationExecutor(self.resolver, self.binder, self.values).execute(op)
+            res = OperationExecutor(self.resolver, self.binder, self.values, self.task_runner).execute(op)
             return ParallelOpResult(
                 id=op.id,
                 operation=op.operation,
                 parameters=op.parameters,
                 result=res.result,
             )
-
         with ThreadPoolExecutor() as executor:
             inner = list(executor.map(run_op, step.operations))
         return ParallelResult(id=step.id, kind="parallel", results=inner)
@@ -474,11 +501,12 @@ class SequentialMapStrategy(MapStrategy):
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
     ):
         self.resolver = resolver
         self.binder = binder
         self.values = values
-
+        self.task_runner = task_runner if task_runner is not None else LocalTaskRunner()
     def execute(self, step: MapStep) -> MapResult:
         print(
             f"Executing sequential map over {step.inputs} with iterator {step.iterator}"
@@ -486,7 +514,7 @@ class SequentialMapStrategy(MapStrategy):
         base_op = step.operation
         base_params = self.values.resolve_any(base_op.parameters)
         results = []
-        for item in step.inputs:
+        for idx, item in enumerate(step.inputs):
             new_params = {}
             for k, v in base_params.items():
                 if v == "{{" + step.iterator + "}}":
@@ -494,9 +522,10 @@ class SequentialMapStrategy(MapStrategy):
                 else:
                     new_params[k] = v
             op = structs.replace(base_op, parameters=new_params)
-            res = OperationExecutor(self.resolver, self.binder, self.values).execute(op)
+            res = OperationExecutor(self.resolver, self.binder, self.values, self.task_runner).execute(op)
             results.append(
                 MapItemResult(
+                    id=f"{op.id}_{idx}",
                     input=item,
                     operation=op.operation,
                     parameters=op.parameters,
@@ -519,11 +548,12 @@ class ParallelMapStrategy(MapStrategy):
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
     ):
         self.resolver = resolver
         self.binder = binder
         self.values = values
-
+        self.task_runner = task_runner if task_runner is not None else LocalTaskRunner()
     def execute(self, step: MapStep) -> MapResult:
         print(
             f"Executing parallel map over {step.inputs} with iterator {step.iterator}"
@@ -531,8 +561,8 @@ class ParallelMapStrategy(MapStrategy):
         base_op = step.operation
         base_params = self.values.resolve_any(base_op.parameters)
         from concurrent.futures import ThreadPoolExecutor
-
-        def run_op(item):
+        def run_op(args):
+            idx, item = args
             new_params = {}
             for k, v in base_params.items():
                 if v == "{{" + step.iterator + "}}":
@@ -540,16 +570,16 @@ class ParallelMapStrategy(MapStrategy):
                 else:
                     new_params[k] = v
             op = structs.replace(base_op, parameters=new_params)
-            res = OperationExecutor(self.resolver, self.binder, self.values).execute(op)
+            res = OperationExecutor(self.resolver, self.binder, self.values, self.task_runner).execute(op)
             return MapItemResult(
+                id=f"{op.id}_{idx}",
                 input=item,
                 operation=op.operation,
                 parameters=op.parameters,
                 result=res.result,
             )
-
         with ThreadPoolExecutor() as executor:
-            results = list(executor.map(run_op, step.inputs))
+            results = list(executor.map(run_op, enumerate(step.inputs)))
         return MapResult(
             id=step.id,
             kind="map",
@@ -568,11 +598,12 @@ class MapStrategyFactory:
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
     ) -> MapStrategy:
         if mode == "parallel":
-            return ParallelMapStrategy(resolver, binder, values)
+            return ParallelMapStrategy(resolver, binder, values, task_runner)
         else:
-            return SequentialMapStrategy(resolver, binder, values)
+            return SequentialMapStrategy(resolver, binder, values, task_runner)
 
 
 class MapExecutor(StepExecutor):
@@ -582,59 +613,83 @@ class MapExecutor(StepExecutor):
         resolver: PluginResolver,
         binder: ParameterBinder,
         values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
     ):
         self.resolver = resolver
         self.binder = binder
         self.values = values
+        self.task_runner = task_runner if task_runner is not None else LocalTaskRunner()
         # strategy is selected per execution
-
     def execute(self, step: MapStep):
         print(f"Executing map over {step.inputs} with iterator {step.iterator}")
         strategy = MapStrategyFactory.get_strategy(
-            step.mode, self.resolver, self.binder, self.values
+            step.mode, self.resolver, self.binder, self.values, self.task_runner
         )
         return strategy.execute(step)
 
 
-class InMemoryWorkflowEngine(WorkflowEngine):
-    """Workflow engine that executes steps in memory using executors."""
+# --- ExecutorFactory abstraction ---
+class ExecutorFactory(ABC):
+    @abstractmethod
+    def get_executor(self, step: Step) -> StepExecutor:
+        ...
 
-    def __init__(self, resolver: PluginResolver, binder: ParameterBinder):
-        """Initializes with a plugin resolver and parameter binder."""
+class InMemoryExecutorFactory(ExecutorFactory):
+    def __init__(
+        self,
+        resolver: PluginResolver,
+        binder: ParameterBinder,
+        values: PlaceholderResolver,
+        task_runner: TaskRunner | None = None,
+    ):
         self.resolver = resolver
         self.binder = binder
-        self.ctx = ExecutionContext()
-        self.values = PlaceholderResolver(self.ctx)
+        self.values = values
+        self.task_runner = task_runner if task_runner is not None else LocalTaskRunner()
+    def get_executor(self, step: Step) -> StepExecutor:
+        if isinstance(step, OperationStep):
+            return OperationExecutor(self.resolver, self.binder, self.values, self.task_runner)
+        elif isinstance(step, MapStep):
+            return MapExecutor(self.resolver, self.binder, self.values, self.task_runner)
+        elif isinstance(step, ParallelStep):
+            return ParallelOperationExecutor(self.resolver, self.binder, self.values, self.task_runner)
+        else:
+            raise ValueError(f"Unknown step type: {type(step)}")
 
+
+
+class InMemoryWorkflowEngine(WorkflowEngine):
+    """Workflow engine that executes steps in memory using executors."""
+    def __init__(
+        self,
+        executor_factory: ExecutorFactory,
+        result_store: ResultStore | None = None,
+    ):
+        """Initializes with an executor factory and optional result store."""
+        self.result_store = result_store if result_store is not None else InMemoryResultStore()
+        self.ctx = ExecutionContext(self.result_store)
+        self.values = PlaceholderResolver(self.ctx)
+        self.executor_factory = executor_factory
     def run(self, workflow: WorkflowDSL) -> list[Any]:
         """Executes each step of the workflow in order and returns a list of step results."""
         results = []
         for step in workflow.steps:
-            if isinstance(step, OperationStep):
-                step_result = OperationExecutor(
-                    self.resolver, self.binder, self.values
-                ).execute(step)
-            elif isinstance(step, MapStep):
-                step_result = MapExecutor(
-                    self.resolver, self.binder, self.values
-                ).execute(step)
-            elif isinstance(step, ParallelStep):
-                step_result = ParallelOperationExecutor(
-                    self.resolver, self.binder, self.values
-                ).execute(step)
-            else:
-                raise ValueError(f"Unknown step type: {type(step)}")
-            self.ctx.results[step.id] = step_result
+            executor = self.executor_factory.get_executor(step)
+            step_result = executor.execute(step)
+            self.result_store.set(step.id, step_result)
             # Register nested operation results so they are accessible by id
             if isinstance(step_result, MapResult):
-                nested_id = step.operation.id
+                nested_id = step_result.id
                 # Store the entire list of results under the nested operation id
-                self.ctx.results[nested_id] = step_result.results
+                self.result_store.set(nested_id, step_result.results)
+                # Additionally, register each MapItemResult by its own id
+                for item_result in step_result.results:
+                    self.result_store.set(item_result.id, item_result)
             elif isinstance(step_result, ParallelResult):
                 for opres in step_result.results:
-                    self.ctx.results[opres.id] = opres
+                    self.result_store.set(opres.id, opres)
             elif isinstance(step_result, OperationResult):
-                self.ctx.results[step_result.id] = step_result
+                self.result_store.set(step_result.id, step_result)
             results.append(step_result)
         return results
 
@@ -642,6 +697,7 @@ class InMemoryWorkflowEngine(WorkflowEngine):
 def execute_workflow(workflow: WorkflowDSL, engine: WorkflowEngine):
     """Runs the given workflow using the specified workflow engine and returns results."""
     return engine.run(workflow)
+
 
 
 if __name__ == "__main__":
@@ -693,7 +749,7 @@ if __name__ == "__main__":
                         "id": "step4_op2",
                         "kind": "operation",
                         "operation": "say_hello",
-                        "parameters": {"name": "${step3_op[1].result}"},
+                        "parameters": {"name": "${step3_op_2.result}"},
                     },
                 ],
             },
@@ -702,8 +758,23 @@ if __name__ == "__main__":
 
     resolver = InMemoryPluginResolver()
     binder = ParameterBinder()
+    # Setup executor factory, result store, and engine
+    result_store = InMemoryResultStore()
+    # Context and values are created inside InMemoryWorkflowEngine, but must be shared with factory.
+    # So create ctx and values, pass to both.
+    # But InMemoryWorkflowEngine creates its own PlaceholderResolver, so the values will be the same if we pass the context.
+    # We'll arrange for this:
+    # 1. Create result_store
+    # 2. Create ctx with result_store
+    # 3. Create values with ctx
+    # 4. Create factory with resolver, binder, values
+    # 5. Create engine with factory and result_store
+    ctx = ExecutionContext(result_store)
+    values = PlaceholderResolver(ctx)
+    executor_factory = InMemoryExecutorFactory(resolver, binder, values)
+    engine = InMemoryWorkflowEngine(executor_factory, result_store)
     results = execute_workflow(
-        load_workflow(my_workflow), InMemoryWorkflowEngine(resolver, binder)
+        load_workflow(my_workflow), engine
     )
     print("Workflow results:")
     print(json.dumps(msgspec.to_builtins(results), indent=2))
