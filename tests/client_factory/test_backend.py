@@ -15,6 +15,7 @@ class TestBackendType:
     def test_backend_type_values(self):
         """Test backend type enum values."""
         assert BackendType.IN_MEMORY.value == "in_memory"
+        assert BackendType.SQLITE.value == "sqlite"
         assert BackendType.TEMPORAL.value == "temporal"
         assert BackendType.CELERY.value == "celery"
 
@@ -22,8 +23,9 @@ class TestBackendType:
         """Test iterating over BackendType values."""
         backends = list(BackendType)
 
-        assert len(backends) == 3
+        assert len(backends) == 4
         assert BackendType.IN_MEMORY in backends
+        assert BackendType.SQLITE in backends
         assert BackendType.TEMPORAL in backends
         assert BackendType.CELERY in backends
 
@@ -73,8 +75,8 @@ class TestBackendType:
 
         assert issubclass(BackendType, Enum)
 
-        # Should have exactly 3 members
-        assert len(BackendType) == 3
+        # Should have exactly 4 members
+        assert len(BackendType) == 4
 
         # All members should be BackendType instances
         for backend in BackendType:
