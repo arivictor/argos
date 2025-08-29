@@ -2,6 +2,8 @@
 
 ![AroFlow](assets/logo.png)
 
+[![Run Tests](https://github.com/arivictor/aroflow/actions/workflows/tests.yml/badge.svg)](https://github.com/arivictor/aroflow/actions/workflows/tests.yml)
+
 Orchestrate your workflows effortlessly. ***Anywhere.***
 
 ## What is AroFlow?
@@ -180,3 +182,4 @@ AroFlow can do more than just basic workflows.
 - [ ] AWS Step Functions (planned)
 - [ ] Azure Durable Functions (planned)
 - [ ] File Based (planned)
+- [ ] Cloud Build (planned)
