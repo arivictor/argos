@@ -26,6 +26,11 @@ Plug in your own modules and tailor argos to fit any workflow need.
 
 ## Supported Backends
 
-- [ ] Local execution (in-development)
+### Roadmap
+
+- [ ] In-memory (in-development)
 - [ ] Temporal (planned)
 - [ ] Celery (planned)
+- [ ] AWS Step Functions (planned)
+- [ ] Azure Durable Functions (planned)
+- [ ] File Based (planned)
