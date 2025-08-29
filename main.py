@@ -859,6 +859,16 @@ class ResultRegistrar:
             self.result_store.set(step_result.id, step_result)
 
 
+
+# --- WorkflowResult struct ---
+class WorkflowResult(msgspec.Struct, forbid_unknown_fields=True):
+    """Result of running a workflow, including status and all step results."""
+    id: str
+    status: Literal["success", "failed", "partial"]
+    results: list[Any]
+    error: Optional[str] = None
+
+
 class InMemoryWorkflowEngine(WorkflowEngine):
     """Workflow engine that executes steps in memory using executors."""
     def __init__(
@@ -873,25 +883,76 @@ class InMemoryWorkflowEngine(WorkflowEngine):
         self.ctx = ExecutionContext(self.result_store)
         self.values = PlaceholderResolver(self.ctx)
         self.executor_factory = executor_factory
-    def run(self, workflow: WorkflowDSL) -> list[Any]:
-        """Executes each step of the workflow in order and returns a list of step results."""
+    def run(self, workflow: WorkflowDSL, workflow_id: Optional[str] = None) -> WorkflowResult:
+        """Executes each step of the workflow in order and returns a WorkflowResult."""
         results = []
+        any_failed = False
+        any_nonfatal_failed = False
+        error_msg = None
         for step in workflow.steps:
             executor = self.executor_factory.get_executor(step)
-            step_result = executor.execute(step)
-            self.registrar.register(step_result)
-            results.append(step_result)
-        return results
+            try:
+                step_result = executor.execute(step)
+                self.registrar.register(step_result)
+                # Determine if this step failed
+                # OperationResult, MapResult, ParallelResult
+                failed = False
+                nonfatal_failed = False
+                if hasattr(step_result, "status"):
+                    if getattr(step_result, "status", None) == "failed":
+                        # Try to check fail_workflow
+                        fail_workflow = getattr(step, "fail_workflow", True)
+                        if fail_workflow:
+                            failed = True
+                        else:
+                            nonfatal_failed = True
+                # For MapResult or ParallelResult, check contained item results
+                if hasattr(step_result, "results"):
+                    contained = getattr(step_result, "results", [])
+                    for item in contained:
+                        if hasattr(item, "status") and getattr(item, "status", None) == "failed":
+                            fail_workflow = getattr(step, "fail_workflow", True)
+                            if fail_workflow:
+                                failed = True
+                            else:
+                                nonfatal_failed = True
+                if failed:
+                    any_failed = True
+                if nonfatal_failed:
+                    any_nonfatal_failed = True
+                results.append(step_result)
+            except Exception as e:
+                # Fatal failure
+                any_failed = True
+                error_msg = str(e)
+                break
+        # Determine workflow status
+        if any_failed:
+            status = "failed"
+        elif any_nonfatal_failed:
+            status = "partial"
+        else:
+            status = "success"
+        if workflow_id is None:
+            workflow_id = "workflow"
+        return WorkflowResult(
+            id=workflow_id,
+            status=status,
+            results=results,
+            error=error_msg,
+        )
 
 
-def execute_workflow(workflow: WorkflowDSL, engine: WorkflowEngine):
-    """Runs the given workflow using the specified workflow engine and returns results."""
+
+def execute_workflow(workflow: WorkflowDSL, engine: WorkflowEngine, workflow_id: Optional[str] = None) -> WorkflowResult:
+    """Runs the given workflow using the specified workflow engine and returns a WorkflowResult."""
     return engine.run(workflow)
 
 
 
 
 # --- WorkflowClient abstraction ---
+
 class WorkflowClient:
     """
     Encapsulates setup of plugin resolver, binder, result store, context, values, executor factory, registrar, and engine.
@@ -913,14 +974,14 @@ class WorkflowClient:
         self.registrar = ResultRegistrar(self.result_store)
         self.engine = InMemoryWorkflowEngine(self.executor_factory, self.result_store, self.registrar)
 
-    def run(self, workflow_dict: dict):
+    def run(self, workflow_dict: dict, workflow_id: Optional[str] = None) -> WorkflowResult:
         """
         Loads and executes a workflow from a dictionary.
-        Returns the list of step results.
+        Returns a WorkflowResult.
         """
         workflow = load_workflow(workflow_dict)
-        results = self.engine.run(workflow)
-        return results
+        result = self.engine.run(workflow, workflow_id=workflow_id)
+        return result
 
 
 if __name__ == "__main__":
@@ -996,6 +1057,7 @@ if __name__ == "__main__":
         ]
     }
     client = WorkflowClient()
-    results = client.run(my_workflow)
+    result: WorkflowResult = client.run(my_workflow)
     print("Workflow results:")
-    print(json.dumps(msgspec.to_builtins(results), indent=2))
+    print(json.dumps(msgspec.to_builtins(result), indent=2))
+    print(result.status)
