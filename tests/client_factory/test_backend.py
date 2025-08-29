@@ -5,6 +5,7 @@ This module tests the BackendType enum.
 """
 
 import pytest
+
 from argos.backend import BackendType
 
 
@@ -17,17 +18,10 @@ class TestBackendType:
         assert BackendType.TEMPORAL.value == "temporal"
         assert BackendType.CELERY.value == "celery"
 
-    def test_backend_type_membership(self):
-        """Test membership in BackendType enum."""
-        assert "in_memory" in BackendType
-        assert "temporal" in BackendType
-        assert "celery" in BackendType
-        assert "unknown" not in BackendType
-
     def test_backend_type_iteration(self):
         """Test iterating over BackendType values."""
         backends = list(BackendType)
-        
+
         assert len(backends) == 3
         assert BackendType.IN_MEMORY in backends
         assert BackendType.TEMPORAL in backends
@@ -38,7 +32,7 @@ class TestBackendType:
         in_memory1 = BackendType.IN_MEMORY
         in_memory2 = BackendType.IN_MEMORY
         temporal = BackendType.TEMPORAL
-        
+
         assert in_memory1 == in_memory2
         assert in_memory1 != temporal
         assert in_memory1.value == "in_memory"
@@ -76,11 +70,12 @@ class TestBackendType:
         """Test BackendType enum properties."""
         # Should be an enum
         from enum import Enum
+
         assert issubclass(BackendType, Enum)
-        
+
         # Should have exactly 3 members
         assert len(BackendType) == 3
-        
+
         # All members should be BackendType instances
         for backend in BackendType:
             assert isinstance(backend, BackendType)

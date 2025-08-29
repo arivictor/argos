@@ -1,9 +1,10 @@
 import inspect
 import re
 import time
+import types
 import typing
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 import msgspec
 from msgspec import structs
@@ -30,14 +31,23 @@ from argos.domain.value_object import ExecutionOptions, MapItemResult, ParallelO
 
 
 class ExecutionContext(Context):
-    """Holds results of previously executed steps, addressable by step id."""
+    """Holds results of previously executed steps and generic workflow variables."""
 
     def __init__(self, result_store: ResultStore):
         self.results = result_store
+        self.variables: dict[str, Any] = {}
 
     def get_result(self, step_id: str) -> Any:
         """Retrieves the result of a previously executed step by its id."""
         return self.results.get(step_id)
+
+    def set_var(self, name: str, value: Any) -> None:
+        """Sets a generic workflow variable."""
+        self.variables[name] = value
+
+    def get_var(self, name: str) -> Any:
+        """Gets a generic workflow variable."""
+        return self.variables[name]
 
 
 class ParameterBinder(Binder):
@@ -65,17 +75,22 @@ class ParameterBinder(Binder):
         return bound
 
     def _coerce(self, value: Any, target_type: Any) -> Any:
-        """Coerces a string value to the target type, handling Optional and Union types."""
+        """Coerces a string value to the target type, handling Optional and Union types, including PEP 604 unions."""
         # If already the right type, return as-is
-        if target_type is Any or isinstance(value, target_type) if isinstance(target_type, type) else False:
+        if target_type is Any or (isinstance(target_type, type) and isinstance(value, target_type)):
             return value
-        # Unwrap Optional[T] and Union[T, ...]
         origin = get_origin(target_type)
-        if origin is Optional:
-            inner = get_args(target_type)[0]
-            return self._coerce(value, inner)
-        if origin is Union:
-            for t in get_args(target_type):
+        # Handle typing.Union and PEP 604 UnionType (e.g. int | None)
+        if isinstance(target_type, types.UnionType) or origin is Union:
+            args = get_args(target_type) if origin is Union else target_type.__args__
+            # If NoneType is in the union, handle None-like values
+            none_types = [t for t in args if t is type(None)]
+            if none_types and value is None or (isinstance(value, str) and value.strip().lower() in {"none", ""}):
+                return None
+            # Try to coerce to each type in the union (except NoneType)
+            for t in args:
+                if t is type(None):
+                    continue
                 try:
                     return self._coerce(value, t)
                 except Exception:
@@ -134,6 +149,9 @@ class VariableResolver(PlaceholderResolver):
         return self._pattern.sub(repl, s)
 
     def _lookup_token(self, token: str) -> Any:
+        # First, check for generic workflow variable safely
+        if hasattr(self.ctx, "variables") and isinstance(self.ctx.variables, dict) and token in self.ctx.variables:
+            return self.ctx.get_var(token)
         # token grammar: id(.field|[index])*
         parts = re.findall(r"[^.\[\]]+|\[\d+\]", token)
         if not parts:
@@ -142,16 +160,21 @@ class VariableResolver(PlaceholderResolver):
         try:
             current = self.ctx.get_result(step_id)
         except KeyError:
-            raise KeyError(f"Unknown step id in placeholder: {step_id}") from None
+            # If not found in results and not a variable, raise generic unknown placeholder error
+            raise KeyError(f"Unknown placeholder: {token}") from None
         # Convert msgspec Structs to builtins for traversal
         current = msgspec.to_builtins(current)
         # Walk remaining parts
-        for p in parts[1:]:
-            if p.startswith("["):
-                idx = int(p[1:-1])
-                current = current[idx]
-            else:
-                current = current[p]
+        try:
+            for p in parts[1:]:
+                if p.startswith("["):
+                    idx = int(p[1:-1])
+                    current = current[idx]
+                else:
+                    current = current[p]
+        except (KeyError, IndexError, TypeError):
+            # If any part of the traversal fails, treat as unknown placeholder
+            raise KeyError(f"Unknown placeholder: {token}") from None
         return current
 
 
@@ -331,7 +354,6 @@ class SequentialMapStrategy(MapStrategy):
 
     def execute(self, step: MapStep) -> MapResult:
         base_op = step.operation
-        base_params = self.values.resolve_any(base_op.parameters)
         retries = (
             step.retries if hasattr(step, "retries") and step.retries is not None else self.execution_options.retries
         )
@@ -340,12 +362,10 @@ class SequentialMapStrategy(MapStrategy):
         )
         results = []
         for idx, item in enumerate(step.inputs):
-            new_params = {}
-            for k, v in base_params.items():
-                if v == "{{" + step.iterator + "}}":
-                    new_params[k] = item
-                else:
-                    new_params[k] = v
+            # Set iterator variable in context before resolving parameters
+            self.values.ctx.set_var(step.iterator, item)
+            # Resolve parameters fresh for each item (allowing for ${iterator} placeholders)
+            new_params = self.values.resolve_any(base_op.parameters)
             op_retries = base_op.retries if hasattr(base_op, "retries") and base_op.retries is not None else retries
             op_timeout = base_op.timeout if hasattr(base_op, "timeout") and base_op.timeout is not None else timeout
             op = structs.replace(base_op, parameters=new_params, retries=op_retries, timeout=op_timeout)
@@ -405,7 +425,6 @@ class ParallelMapStrategy(MapStrategy):
 
     def execute(self, step: MapStep) -> MapResult:
         base_op = step.operation
-        base_params = self.values.resolve_any(base_op.parameters)
         retries = (
             step.retries if hasattr(step, "retries") and step.retries is not None else self.execution_options.retries
         )
@@ -416,12 +435,10 @@ class ParallelMapStrategy(MapStrategy):
 
         def run_op(args):
             idx, item = args
-            new_params = {}
-            for k, v in base_params.items():
-                if v == "{{" + step.iterator + "}}":
-                    new_params[k] = item
-                else:
-                    new_params[k] = v
+            # Set iterator variable in context before resolving parameters
+            self.values.ctx.set_var(step.iterator, item)
+            # Resolve parameters fresh for each item (allowing for ${iterator} placeholders)
+            new_params = self.values.resolve_any(base_op.parameters)
             op_retries = base_op.retries if hasattr(base_op, "retries") and base_op.retries is not None else retries
             op_timeout = base_op.timeout if hasattr(base_op, "timeout") and base_op.timeout is not None else timeout
             op = structs.replace(base_op, parameters=new_params, retries=op_retries, timeout=op_timeout)
