@@ -132,11 +132,11 @@ class WorkflowResult(msgspec.Struct, forbid_unknown_fields=True):
     def to_dict(self):
         """Convert the WorkflowResult to a dictionary."""
         return msgspec.to_builtins(self)
-    
+
     def to_json(self) -> str:
         """Convert the WorkflowResult to a JSON string."""
         return msgspec.json.encode(self).decode()
-    
+
     def to_yaml(self) -> str:
         """Convert the WorkflowResult to a YAML string."""
         return msgspec.yaml.encode(self).decode()

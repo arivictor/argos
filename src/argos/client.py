@@ -51,9 +51,9 @@ class Client:
             self._executor_factory.resolver._registry[plugin_name] = plugin
 
         # Also register with our own resolver for consistency
-        if hasattr(self._resolver, "_registry"):
-            plugin_name = getattr(plugin, "plugin_name", plugin.__name__)
-            self._resolver._registry[plugin_name] = plugin
+        # if hasattr(self._resolver, "_registry"):
+        #     plugin_name = getattr(plugin, "plugin_name", plugin.__name__)
+        #     self._resolver._registry[plugin_name] = plugin
         return self
 
     def run(self, workflow_dict: dict) -> WorkflowResult:

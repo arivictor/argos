@@ -1,18 +1,14 @@
-import json
 
 import argos
 from argos.domain.entity import WorkflowResult
 from plugins import SayHelloPlugin
 
-
-
 if __name__ == "__main__":
-        # Create client for in-memory execution
+    # Create client for in-memory execution
     client = argos.create(argos.BackendType.IN_MEMORY)
 
     # Register plugins
     client.plugin(SayHelloPlugin)
-
 
     workflow = {
         "steps": [
