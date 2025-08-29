@@ -1,9 +1,10 @@
 from abc import abstractmethod
+from enum import Enum
 from typing import Any, Literal
 
 import msgspec
 
-from argos.domain.value_object import MapItemResult, ParallelOpResult
+from argos.domain.value_object import MapItemResult, ParallelOpResult, ResultStatus, WorkflowResultStatus
 
 
 class Step(msgspec.Struct, tag_field="kind", forbid_unknown_fields=True):
@@ -120,11 +121,22 @@ class ParallelResult(msgspec.Struct, forbid_unknown_fields=True):
     kind: Literal["parallel"]
     results: list[ParallelOpResult]
 
-
 class WorkflowResult(msgspec.Struct, forbid_unknown_fields=True):
     """Result of running a workflow, including status and all step results."""
 
     id: str
-    status: Literal["success", "failed", "partial"]
+    status: WorkflowResultStatus
     results: list[Any]
     error: str | None = None
+
+    def to_dict(self):
+        """Convert the WorkflowResult to a dictionary."""
+        return msgspec.to_builtins(self)
+
+    def to_json(self) -> str:
+        """Convert the WorkflowResult to a JSON string."""
+        return msgspec.json.encode(self).decode()
+
+    def to_yaml(self) -> str:
+        """Convert the WorkflowResult to a YAML string."""
+        return msgspec.yaml.encode(self).decode()

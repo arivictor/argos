@@ -9,7 +9,7 @@ class WorkflowEngine(ABC):
     """Abstract base class defining the workflow engine interface."""
 
     @abstractmethod
-    def run(self, workflow: WorkflowDSL) -> Any:
+    def run(self, workflow: WorkflowDSL, workflow_id: str | None = None) -> Any:
         """Runs the given workflow."""
         ...
 
