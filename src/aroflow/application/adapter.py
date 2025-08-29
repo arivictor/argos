@@ -38,29 +38,59 @@ class ExecutionContext(Context):
         self.variables: dict[str, Any] = {}
 
     def get_result(self, step_id: str) -> Any:
-        """Retrieves the result of a previously executed step by its id."""
+        """
+        Retrieves the result of a previously executed step by its id.
+
+        :param step_id: The identifier of the step whose result to retrieve
+        :type step_id: str
+        :returns: The result of the specified step
+        :rtype: Any
+        """
         return self.results.get(step_id)
 
     def set_var(self, name: str, value: Any) -> None:
-        """Sets a generic workflow variable."""
+        """
+        Sets a generic workflow variable.
+
+        :param name: The name of the variable
+        :type name: str
+        :param value: The value to assign to the variable
+        :type value: Any
+        """
         self.variables[name] = value
 
     def get_var(self, name: str) -> Any:
-        """Gets a generic workflow variable."""
+        """
+        Gets a generic workflow variable.
+
+        :param name: The name of the variable to retrieve
+        :type name: str
+        :returns: The value of the specified variable
+        :rtype: Any
+        """
         return self.variables[name]
 
 
 class ParameterBinder(Binder):
-    """Binds parameters (accepting mixed types) to plugin execute method arguments with type coercion.
+    """
+    Binds parameters (accepting mixed types) to plugin execute method arguments with type coercion.
 
     The bind method accepts parameter dictionaries with mixed-type values,
     and will coerce strings to the target types when necessary.
     """
 
     def bind(self, plugin: PluginBase, params: dict[str, Any]) -> dict[str, Any]:
-        """Binds and coerces parameters (accepting mixed-type values) to the plugin's execute method signature.
+        """
+        Binds and coerces parameters (accepting mixed-type values) to the plugin's execute method signature.
 
         Accepts a parameter dictionary with mixed-type values; will coerce strings to the target types when necessary.
+
+        :param plugin: The plugin instance to bind parameters for
+        :type plugin: PluginBase
+        :param params: The parameter dictionary with mixed-type values
+        :type params: dict[str, Any]
+        :returns: Dictionary of bound and coerced parameters
+        :rtype: dict[str, Any]
         """
         sig = inspect.signature(plugin.execute)
         hints = typing.get_type_hints(plugin.execute, include_extras=False)
@@ -75,7 +105,16 @@ class ParameterBinder(Binder):
         return bound
 
     def _coerce(self, value: Any, target_type: Any) -> Any:
-        """Coerces a string value to the target type, handling Optional and Union types, including PEP 604 unions."""
+        """
+        Coerces a string value to the target type, handling Optional and Union types, including PEP 604 unions.
+
+        :param value: The value to coerce
+        :type value: Any
+        :param target_type: The target type to coerce to
+        :type target_type: Any
+        :returns: The coerced value
+        :rtype: Any
+        """
         # If already the right type, return as-is
         if target_type is Any or (isinstance(target_type, type) and isinstance(value, target_type)):
             return value

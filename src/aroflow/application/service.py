@@ -22,7 +22,12 @@ class ResultRegistrar:
         self.result_store = result_store
 
     def register(self, step_result: Any):
-        """Register results into the store, including nested results."""
+        """
+        Register results into the store, including nested results.
+
+        :param step_result: The result from executing a step
+        :type step_result: Any
+        """
         # Store the main result under its id
         if hasattr(step_result, "id"):
             self.result_store.set(step_result.id, step_result)
@@ -42,13 +47,13 @@ class ResultRegistrar:
 
 
 def load_workflow(data: dict | WorkflowDSL) -> WorkflowDSL:
-    """Decodes and validates a workflow from a Python dictionary.
+    """
+    Decodes and validates a workflow from a Python dictionary.
 
-    Args:
-        data: The workflow data as a dictionary.
-
-    Returns:
-        A WorkflowDSL instance representing the validated workflow.
+    :param data: The workflow data as a dictionary
+    :type data: dict | WorkflowDSL
+    :returns: A WorkflowDSL instance representing the validated workflow
+    :rtype: WorkflowDSL
     """
     if isinstance(data, WorkflowDSL):
         validate_workflow(data)
@@ -60,7 +65,16 @@ def load_workflow(data: dict | WorkflowDSL) -> WorkflowDSL:
 
 
 def execute_workflow(workflow: WorkflowDSL, engine: WorkflowEngine) -> WorkflowResult:
-    """Runs the given workflow using the specified workflow engine and returns a WorkflowResult."""
+    """
+    Runs the given workflow using the specified workflow engine and returns a WorkflowResult.
+
+    :param workflow: The workflow to execute
+    :type workflow: WorkflowDSL
+    :param engine: The workflow engine to use for execution
+    :type engine: WorkflowEngine
+    :returns: The result of the workflow execution
+    :rtype: WorkflowResult
+    """
     return engine.run(workflow)
 
 
@@ -70,7 +84,7 @@ class WorkflowClient:
     values, executor factory, registrar, and engine.
     Provides a high-level interface for loading and running workflows.
 
-    Note:
+    .. note::
         Infrastructure wiring (e.g., concrete implementations of PluginResolver, ExecutorFactory,
         WorkflowEngine, and ResultStore) should be done in a composition root (e.g., container.py or main.py)
         and injected into this class.
@@ -99,7 +113,13 @@ class WorkflowClient:
     def run(self, workflow: dict | WorkflowDSL, workflow_id: str | None = None) -> WorkflowResult:
         """
         Loads and executes a workflow from a dictionary.
-        Returns a WorkflowResult.
+
+        :param workflow: The workflow definition as a dictionary or WorkflowDSL instance
+        :type workflow: dict | WorkflowDSL
+        :param workflow_id: Optional workflow identifier
+        :type workflow_id: str | None
+        :returns: A WorkflowResult
+        :rtype: WorkflowResult
         """
         workflow = load_workflow(workflow)
         result = self.engine.run(workflow)

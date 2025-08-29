@@ -13,12 +13,17 @@ class Step(msgspec.Struct, tag_field="kind", forbid_unknown_fields=True):
 
     @abstractmethod
     def validate(self) -> None:
-        """Validate the step. Raises ValueError if invalid."""
+        """
+        Validate the step.
+
+        :raises ValueError: If the step is invalid
+        """
         ...
 
 
 class OperationStep(Step, kw_only=True, tag="operation", forbid_unknown_fields=True):
-    """Represents an operation step with an operation name and parameters.
+    """
+    Represents an operation step with an operation name and parameters.
 
     The parameters dictionary may contain any JSON value; accepts mixed types.
     Optional: retries and timeout for this step.
@@ -38,7 +43,9 @@ class OperationStep(Step, kw_only=True, tag="operation", forbid_unknown_fields=T
 
 
 class ParallelStep(Step, kw_only=True, tag="parallel", forbid_unknown_fields=True):
-    """Represents a parallel step that runs multiple operation steps concurrently.
+    """
+    Represents a parallel step that runs multiple operation steps concurrently.
+
     Optional: retries and timeout for all inner operations.
     """
 
@@ -58,7 +65,9 @@ class ParallelStep(Step, kw_only=True, tag="parallel", forbid_unknown_fields=Tru
 
 
 class MapStep(Step, kw_only=True, tag="map", forbid_unknown_fields=True):
-    """Represents a map step that iterates over inputs applying an operation step.
+    """
+    Represents a map step that iterates over inputs applying an operation step.
+
     Optional: retries and timeout for each mapped operation.
     """
 
@@ -130,13 +139,28 @@ class WorkflowResult(msgspec.Struct, forbid_unknown_fields=True):
     error: str | None = None
 
     def to_dict(self):
-        """Convert the WorkflowResult to a dictionary."""
+        """
+        Convert the WorkflowResult to a dictionary.
+
+        :returns: Dictionary representation of the workflow result
+        :rtype: dict
+        """
         return msgspec.to_builtins(self)
 
     def to_json(self) -> str:
-        """Convert the WorkflowResult to a JSON string."""
+        """
+        Convert the WorkflowResult to a JSON string.
+
+        :returns: JSON string representation of the workflow result
+        :rtype: str
+        """
         return msgspec.json.encode(self).decode()
 
     def to_yaml(self) -> str:
-        """Convert the WorkflowResult to a YAML string."""
+        """
+        Convert the WorkflowResult to a YAML string.
+
+        :returns: YAML string representation of the workflow result
+        :rtype: str
+        """
         return msgspec.yaml.encode(self).decode()
