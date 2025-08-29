@@ -2,9 +2,10 @@ from aroflow.backend import BackendType
 from aroflow.client import Client
 from aroflow.domain.port import PluginBase
 from aroflow.infrastructure.adapter.in_memory.client import create as create_in_memory_client
+from aroflow.infrastructure.adapter.sqlite.client import create as create_sqlite_client
 
 
-def create(backend: BackendType, plugins: list[type[PluginBase]] | None = None) -> Client:
+def create(backend: BackendType, plugins: list[type[PluginBase]] | None = None, **kwargs) -> Client:
     """
     Factory function to create a Client with the specified backend.
 
@@ -12,6 +13,7 @@ def create(backend: BackendType, plugins: list[type[PluginBase]] | None = None) 
     :type backend: BackendType
     :param plugins: Optional list of plugin classes to pre-register
     :type plugins: list[type[PluginBase]] | None
+    :param kwargs: Additional backend-specific configuration options
     :returns: A configured Client instance
     :rtype: Client
     :raises ValueError: If the backend type is unsupported
@@ -27,6 +29,20 @@ def create(backend: BackendType, plugins: list[type[PluginBase]] | None = None) 
             backend=in_memory_client.engine,
             plugin_resolver=in_memory_client.resolver,
             executor_factory=in_memory_client.executor_factory,
+        )
+
+        return client
+
+    elif backend == BackendType.SQLITE:
+        # Create the SQLite client using the SQLite factory
+        db_path = kwargs.get("db_path", ":memory:")
+        sqlite_client = create_sqlite_client(plugins, db_path=db_path)
+
+        # Create the unified client façade
+        client = Client(
+            backend=sqlite_client.engine,
+            plugin_resolver=sqlite_client.resolver,
+            executor_factory=sqlite_client.executor_factory,
         )
 
         return client

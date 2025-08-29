@@ -177,6 +177,7 @@ AroFlow can do more than just basic workflows.
 ### Backends
 
 - [ ] In-memory (in-development)
+- [ ] SQLite (in-development)
 - [ ] Temporal (planned)
 - [ ] Celery (planned)
 - [ ] AWS Step Functions (planned)

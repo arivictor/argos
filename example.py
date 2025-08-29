@@ -1,5 +1,4 @@
 import aroflow
-from aroflow import WorkflowResult
 
 
 class SayHelloPlugin(aroflow.PluginMixin):
@@ -10,33 +9,22 @@ class SayHelloPlugin(aroflow.PluginMixin):
 
 
 if __name__ == "__main__":
-    # Create client for in-memory execution
-    client = aroflow.create(aroflow.BackendType.IN_MEMORY)
+    import aroflow
+    from aroflow.backend import BackendType
 
-    # Register plugins
-    client.plugin(SayHelloPlugin)
+    # File-based SQLite (persistent storage)
+    client = aroflow.create(BackendType.SQLITE, plugins=[SayHelloPlugin], db_path="workflows.db")
 
+    # Execute workflows exactly the same way
     workflow = {
-        "steps": [
-            {
-                "id": "step1",
-                "kind": "map",
-                "mode": "sequential",
-                "iterator": "name",
-                "inputs": ["A", "R", "G", "O", "S"],
-                "operation": {
-                    "id": "step1",
-                    "kind": "operation",
-                    "operation": "say_hello",
-                    "parameters": {"name": "${name}"},
-                },
-            },
-        ]
+        "steps": [{"id": "process_data", "kind": "operation", "operation": "say_hello", "parameters": {"name": "ari"}}]
     }
 
-    workflow_id = "example_workflow_001"
-    result: WorkflowResult = client.run(workflow, workflow_id)
-
+    my_id = "workflow_1"
+    result = client.run(workflow, my_id)
     print(result.to_dict())
-    print(result.to_json())
-    print(result.to_yaml())
+
+    workflows = client.list_workflows()
+    print(f"Stored workflows: {workflows}")
+
+    my_workflow = client.get_workflow(my_id)
