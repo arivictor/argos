@@ -1,6 +1,6 @@
 # Argos
 
-![Argos](assets/cover.png)
+![Argos](assets/logo.png)
 
 Orchestrate your workflows effortlessly. ***Anywhere.***
 
