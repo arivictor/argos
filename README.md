@@ -180,3 +180,4 @@ AroFlow can do more than just basic workflows.
 - [ ] AWS Step Functions (planned)
 - [ ] Azure Durable Functions (planned)
 - [ ] File Based (planned)
+- [ ] Cloud Build (planned)
