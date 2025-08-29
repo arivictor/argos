@@ -10,6 +10,12 @@ ruff-check: ## Runs ruff linter on the codebase without fixing
 
 format: ruff-format ruff-lint ## Formatting and linting using Ruff
 
+docs-build:
+	@mkdocs build
+
+docs-serve:
+	@mkdocs serve
+
 .PHONY: help
 .DEFAULT_GOAL := help
 
