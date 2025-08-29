@@ -31,9 +31,9 @@ Plugins extend AroFlow by implementing execute.
 Each plugin declares a plugin_name so workflows can reference it.
 
 ```python
-import AroFlow
+import aroflow
 
-class SayHelloPlugin(AroFlow.PluginMixin):
+class SayHelloPlugin(aroflow.PluginMixin):
     plugin_name = "say_hello"
 
     def execute(self, name: str) -> str:
@@ -43,7 +43,7 @@ class SayHelloPlugin(AroFlow.PluginMixin):
 2. Create a client and register your plugin(s)
 
 ```python
-client = AroFlow.create(AroFlow.BackendType.IN_MEMORY)
+client = aroflow.create(AroFlow.BackendType.IN_MEMORY)
 client.plugin(SayHelloPlugin)
 ```
 
@@ -65,9 +65,8 @@ workflow = {
 4. Execute the workflow
 
 ```python
-from AroFlow import WorkflowResult
 
-result: WorkflowResult = client.run(workflow)
+result = client.run(workflow)
 
 # View the results however you like
 print(result.to_dict())
