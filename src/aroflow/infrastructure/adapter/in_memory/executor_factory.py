@@ -26,6 +26,15 @@ class InMemoryExecutorFactory(ExecutorFactory):
         self.execution_options = execution_options
 
     def get_executor(self, step: Step) -> StepExecutor:
+        """
+        Get the appropriate executor for the given step type.
+
+        :param step: The step to get an executor for
+        :type step: Step
+        :returns: The executor for the given step type
+        :rtype: StepExecutor
+        :raises ValueError: If the step type is unknown
+        """
         if isinstance(step, OperationStep):
             return OperationExecutor(self.resolver, self.binder, self.values, self.task_runner, self.execution_options)
         elif isinstance(step, MapStep):
