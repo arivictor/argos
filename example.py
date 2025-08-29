@@ -40,5 +40,3 @@ if __name__ == "__main__":
     print(result.to_dict())
     print(result.to_json())
     print(result.to_yaml())
-
-    
