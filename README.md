@@ -86,7 +86,7 @@ results:
   operation: say_hello
   parameters:
     name: Ari
-  result: Hello, Ari!
+  result: Hello, Argos!
   status: success
   error: null
 error: null
