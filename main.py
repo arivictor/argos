@@ -231,6 +231,11 @@ class Step(msgspec.Struct, tag_field="kind"):
 
     id: str
 
+    @abstractmethod
+    def validate(self) -> None:
+        """Validate the step. Raises ValueError if invalid."""
+        ...
+
 
 class OperationStep(Step, kw_only=True, tag="operation"):
     """Represents an operation step with an operation name and parameters.
@@ -241,11 +246,28 @@ class OperationStep(Step, kw_only=True, tag="operation"):
     operation: str
     parameters: dict[str, Any]
 
+    def validate(self) -> None:
+        if not self.id or not isinstance(self.id, str):
+            raise ValueError(f"Invalid step id: {self.id}")
+        if not isinstance(self.parameters, dict):
+            raise ValueError(f"Operation step {self.id} parameters must be a dict")
+
 
 class ParallelStep(Step, kw_only=True, tag="parallel"):
     """Represents a parallel step that runs multiple operation steps concurrently."""
 
     operations: list[OperationStep]
+
+    def validate(self) -> None:
+        if not self.id or not isinstance(self.id, str):
+            raise ValueError(f"Invalid step id: {self.id}")
+        if not self.operations or not isinstance(self.operations, list):
+            raise ValueError(f"Parallel step {self.id} has no operations")
+        for op in self.operations:
+            if not isinstance(op, OperationStep):
+                raise ValueError(
+                    f"Parallel step {self.id} contains non-operation step"
+                )
 
 
 class MapStep(Step, kw_only=True, tag="map"):
@@ -255,6 +277,20 @@ class MapStep(Step, kw_only=True, tag="map"):
     iterator: str
     mode: Literal["sequential", "parallel"] = "sequential"
     operation: OperationStep
+
+    def validate(self) -> None:
+        if not self.id or not isinstance(self.id, str):
+            raise ValueError(f"Invalid step id: {self.id}")
+        if not self.inputs or not isinstance(self.inputs, list):
+            raise ValueError(f"Map step {self.id} has empty inputs")
+        if not self.iterator or not isinstance(self.iterator, str) or not self.iterator.isidentifier():
+            raise ValueError(
+                f"Invalid iterator name in map step {self.id}: {self.iterator}"
+            )
+        if not isinstance(self.operation, OperationStep):
+            raise ValueError(
+                f"Map step {self.id} operation must be an OperationStep"
+            )
 
 
 StepTypes = Union[OperationStep, MapStep, ParallelStep]
@@ -316,42 +352,6 @@ class ParallelResult(msgspec.Struct):
     results: list[ParallelOpResult]
 
 
-class ValidateWorkflowStep:
-    def execute(self, step: StepTypes) -> bool:
-        """Validates a single workflow step.
-
-        Args:
-            step: The workflow step to validate.
-
-        Returns:
-            True if the step is valid, raises ValueError otherwise.
-        """
-        # All top-level steps must have an id
-        if not step.id or not isinstance(step.id, str):
-            raise ValueError(f"Invalid step id: {step.id}")
-
-        if isinstance(step, MapStep):
-            if not step.inputs:
-                raise ValueError(f"Map step {step.id} has empty inputs")
-            if not step.iterator.isidentifier():
-                raise ValueError(
-                    f"Invalid iterator name in map step {step.id}: {step.iterator}"
-                )
-            # Only check type for nested operation, do not require id
-            if not isinstance(step.operation, OperationStep):
-                raise ValueError(
-                    f"Map step {step.id} operation must be an OperationStep"
-                )
-            # Do NOT require step.operation.id to be present or string
-        if isinstance(step, ParallelStep):
-            if not step.operations:
-                raise ValueError(f"Parallel step {step.id} has no operations")
-            for op in step.operations:
-                if not isinstance(op, OperationStep):
-                    raise ValueError(
-                        f"Parallel step {step.id} contains non-operation step"
-                    )
-        return True
 
 
 def validate_workflow(data: WorkflowDSL) -> bool:
@@ -366,12 +366,11 @@ def validate_workflow(data: WorkflowDSL) -> bool:
     if not data.steps:
         raise ValueError("Workflow has no steps")
     seen_ids = set()
-    step_validator = ValidateWorkflowStep()
     for step in data.steps:
         if step.id in seen_ids:
             raise ValueError(f"Duplicate step id found: {step.id}")
         seen_ids.add(step.id)
-        step_validator.execute(step)
+        step.validate()
     return True
 
 
@@ -658,15 +657,43 @@ class InMemoryExecutorFactory(ExecutorFactory):
 
 
 
+
+# --- ResultRegistrar abstraction ---
+class ResultRegistrar:
+    """Handles registration of results into a ResultStore."""
+    def __init__(self, result_store: ResultStore):
+        self.result_store = result_store
+    def register(self, step_result: Any):
+        """Register results into the store, including nested results."""
+        # Store the main result under its id
+        if hasattr(step_result, "id"):
+            self.result_store.set(step_result.id, step_result)
+        # Register nested operation results so they are accessible by id
+        if isinstance(step_result, MapResult):
+            nested_id = step_result.id
+            # Store the entire list of results under the nested operation id
+            self.result_store.set(nested_id, step_result.results)
+            # Additionally, register each MapItemResult by its own id
+            for item_result in step_result.results:
+                self.result_store.set(item_result.id, item_result)
+        elif isinstance(step_result, ParallelResult):
+            for opres in step_result.results:
+                self.result_store.set(opres.id, opres)
+        elif isinstance(step_result, OperationResult):
+            self.result_store.set(step_result.id, step_result)
+
+
 class InMemoryWorkflowEngine(WorkflowEngine):
     """Workflow engine that executes steps in memory using executors."""
     def __init__(
         self,
         executor_factory: ExecutorFactory,
         result_store: ResultStore | None = None,
+        registrar: 'ResultRegistrar' = None,
     ):
-        """Initializes with an executor factory and optional result store."""
+        """Initializes with an executor factory and optional result store and registrar."""
         self.result_store = result_store if result_store is not None else InMemoryResultStore()
+        self.registrar = registrar if registrar is not None else ResultRegistrar(self.result_store)
         self.ctx = ExecutionContext(self.result_store)
         self.values = PlaceholderResolver(self.ctx)
         self.executor_factory = executor_factory
@@ -676,20 +703,7 @@ class InMemoryWorkflowEngine(WorkflowEngine):
         for step in workflow.steps:
             executor = self.executor_factory.get_executor(step)
             step_result = executor.execute(step)
-            self.result_store.set(step.id, step_result)
-            # Register nested operation results so they are accessible by id
-            if isinstance(step_result, MapResult):
-                nested_id = step_result.id
-                # Store the entire list of results under the nested operation id
-                self.result_store.set(nested_id, step_result.results)
-                # Additionally, register each MapItemResult by its own id
-                for item_result in step_result.results:
-                    self.result_store.set(item_result.id, item_result)
-            elif isinstance(step_result, ParallelResult):
-                for opres in step_result.results:
-                    self.result_store.set(opres.id, opres)
-            elif isinstance(step_result, OperationResult):
-                self.result_store.set(step_result.id, step_result)
+            self.registrar.register(step_result)
             results.append(step_result)
         return results
 
@@ -698,6 +712,37 @@ def execute_workflow(workflow: WorkflowDSL, engine: WorkflowEngine):
     """Runs the given workflow using the specified workflow engine and returns results."""
     return engine.run(workflow)
 
+
+
+
+# --- WorkflowClient abstraction ---
+class WorkflowClient:
+    """
+    Encapsulates setup of plugin resolver, binder, result store, context, values, executor factory, registrar, and engine.
+    Provides a high-level interface for loading and running workflows.
+    """
+    def __init__(
+        self,
+        plugins: list[type[PluginBase]] | None = None,
+        result_store: ResultStore | None = None,
+    ):
+        self.resolver = InMemoryPluginResolver(plugins)
+        self.binder = ParameterBinder()
+        self.result_store = result_store if result_store is not None else InMemoryResultStore()
+        self.ctx = ExecutionContext(self.result_store)
+        self.values = PlaceholderResolver(self.ctx)
+        self.executor_factory = InMemoryExecutorFactory(self.resolver, self.binder, self.values)
+        self.registrar = ResultRegistrar(self.result_store)
+        self.engine = InMemoryWorkflowEngine(self.executor_factory, self.result_store, self.registrar)
+
+    def run(self, workflow_dict: dict):
+        """
+        Loads and executes a workflow from a dictionary.
+        Returns the list of step results.
+        """
+        workflow = load_workflow(workflow_dict)
+        results = self.engine.run(workflow)
+        return results
 
 
 if __name__ == "__main__":
@@ -755,26 +800,7 @@ if __name__ == "__main__":
             },
         ]
     }
-
-    resolver = InMemoryPluginResolver()
-    binder = ParameterBinder()
-    # Setup executor factory, result store, and engine
-    result_store = InMemoryResultStore()
-    # Context and values are created inside InMemoryWorkflowEngine, but must be shared with factory.
-    # So create ctx and values, pass to both.
-    # But InMemoryWorkflowEngine creates its own PlaceholderResolver, so the values will be the same if we pass the context.
-    # We'll arrange for this:
-    # 1. Create result_store
-    # 2. Create ctx with result_store
-    # 3. Create values with ctx
-    # 4. Create factory with resolver, binder, values
-    # 5. Create engine with factory and result_store
-    ctx = ExecutionContext(result_store)
-    values = PlaceholderResolver(ctx)
-    executor_factory = InMemoryExecutorFactory(resolver, binder, values)
-    engine = InMemoryWorkflowEngine(executor_factory, result_store)
-    results = execute_workflow(
-        load_workflow(my_workflow), engine
-    )
+    client = WorkflowClient()
+    results = client.run(my_workflow)
     print("Workflow results:")
     print(json.dumps(msgspec.to_builtins(results), indent=2))
