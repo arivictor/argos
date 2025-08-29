@@ -1,10 +1,12 @@
 # argos
 
+![argos](assets/cover.png)
+
 Orchestrate your workflows effortlessly. ***Anywhere.***
 
 ## Why Argos?
 
-Argos provides a powerful abstraction over various execution backends, allowing you to define your workflows once and run them anywhere without rewriting code. It ensures consistency in workflow definitions, offers great flexibility to adapt to different needs, and maintains simplicity for end users, making workflow automation accessible and efficient.
+Argos provides a powerful abstraction over various execution backends, allowing you to *define your workflows once* and run them anywhere without rewriting code. It ensures consistency in workflow definitions, offers great flexibility to adapt to different needs, and maintains simplicity for end users, making workflow automation accessible and efficient.
 
 ## Features
 
