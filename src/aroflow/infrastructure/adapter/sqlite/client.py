@@ -11,6 +11,7 @@ from aroflow.infrastructure.adapter.sqlite.workflow_engine import SQLiteWorkflow
 
 class SQLiteClient(WorkflowClient):
     """SQLite-based workflow client."""
+
     pass
 
 

@@ -61,7 +61,7 @@ class SQLiteResultStore(ResultStore):
         conn = self._get_connection()
         conn.execute(
             "INSERT OR REPLACE INTO workflow_results (workflow_id, step_id, result) VALUES (?, ?, ?)",
-            (workflow_id, step_id, result_json)
+            (workflow_id, step_id, result_json),
         )
         conn.commit()
 
@@ -85,8 +85,7 @@ class SQLiteResultStore(ResultStore):
 
         conn = self._get_connection()
         cursor = conn.execute(
-            "SELECT result FROM workflow_results WHERE workflow_id = ? AND step_id = ?",
-            (workflow_id, step_id)
+            "SELECT result FROM workflow_results WHERE workflow_id = ? AND step_id = ?", (workflow_id, step_id)
         )
         row = cursor.fetchone()
 
