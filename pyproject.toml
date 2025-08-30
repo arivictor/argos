@@ -16,25 +16,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = [
-    
-]
+test = []
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
-extend-exclude = [
-    ".direnv",
-    ".git",
-    ".ruff_cache",
-]
+extend-exclude = [".direnv", ".git", ".ruff_cache"]
 line-length = 120
 indent-width = 4
 target-version = "py311"
 
 [tool.ruff.lint]
-fixable = [
-    "ALL",
-]
+fixable = ["ALL"]
 unfixable = []
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
@@ -53,8 +45,26 @@ addopts = [
     "--cov=src/aroflow",
     "--cov-report=term-missing",
     "--cov-report=html",
-    "-v"
+    "-v",
 ]
 
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools]
-py-modules = []
+packages = ["aroflow"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+aroflow = ["py.typed"]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+
+[[tool.pyright.executionEnvironments]]
+root = "src"
+extraPaths = ["src"]
