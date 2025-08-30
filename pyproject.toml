@@ -13,6 +13,7 @@ dependencies = [
     "mkdocs",
     "mkdocs-material",
     "pyment",
+    "temporalio",
 ]
 
 [project.optional-dependencies]
